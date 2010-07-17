@@ -1,0 +1,68 @@
+<project name="InMemProfiler" basedir="." default="help">
+
+  <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpath="./lib/ant-contrib-1.0b3.jar" />
+  <taskdef name="jarjar" classname="com.tonicsystems.jarjar.JarJarTask"
+           classpath="./lib/jarjar-1.0.jar"/>
+
+
+
+  <target name="help">
+    <java classname="org.apache.tools.ant.Main">
+      <arg value="-projecthelp" />
+    </java>
+  </target>
+
+
+
+  <target name="clean" description="Comile classes">
+    <delete dir="./build" />
+  </target>
+
+
+
+  <target name="build" description="Comile classes">
+    <mkdir dir="./build" />
+    <mkdir dir="./build/classes" />
+
+    <javac destdir="./build/classes" debug="true" source="1.6" target="1.6">
+      <src path="./src"/>
+      <classpath>
+        <fileset dir="./lib" includes="*.jar" />
+      </classpath>
+    </javac>
+  </target>
+
+
+
+  <target name="jar" description="Create Jars" depends="build" >
+
+    <mkdir dir="./build/jars/" />
+
+    <!-- Profiler Agent -->
+    <jarjar jarfile="./build/jars/inmemprofiler-agent.jar" compress="false">
+      <manifest>
+        <attribute name="Premain-Class" value="org.inmemprofiler.Agent" />
+        <attribute name="Agent-Class" value="org.inmemprofiler.Agent" />
+        <attribute name="Can-Redefine-Classes" value="true" />
+      </manifest>
+      <fileset dir="./build/classes" includes="**/*.class" />
+      <zipfileset src="./lib/asm-debug-all-3.3.jar"/>
+      <rule pattern="org.objectweb.asm.**" result="org.inmemprofiler.internal.objectweb.asm.@1"/>
+    </jarjar>
+
+    <!-- Test Trace Agent -->
+    <jar destfile="./build/jars/inmemprofiler-agent-test.jar" compress="false">
+      <manifest>
+        <attribute name="Premain-Class" value="org.inmemprofiler.Agent" />
+        <attribute name="Agent-Class" value="org.inmemprofiler.Agent" />
+        <attribute name="Can-Redefine-Classes" value="true" />
+      </manifest>
+    </jar>
+
+  </target>
+
+  <target name="deploy" description="Deploy to test project" depends="jar" >
+    <copy file="./build/jars/inmemprofiler-agent.jar" todir="../Test/"/>
+  </target>
+
+</project>
