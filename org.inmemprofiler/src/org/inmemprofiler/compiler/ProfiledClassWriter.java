@@ -1,6 +1,7 @@
-package org.inmemprofiler;
+package org.inmemprofiler.compiler;
 
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
+import static org.objectweb.asm.Opcodes.ALOAD;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -47,7 +48,7 @@ public class ProfiledClassWriter extends ClassWriter
    */
   private static class ProfiledMethodWriter extends MethodAdapter
   {
-    private static final String HELPER_CLASS = "org/inmemprofiler/ProfileDataCollector";
+    private static final String HELPER_CLASS = "org/inmemprofiler/runtime/BootClassPathProfiler";
 
     /**
      * cTor
@@ -70,10 +71,8 @@ public class ProfiledClassWriter extends ClassWriter
     {
       if (opcode == Opcodes.RETURN)
       {
-        mv.visitMethodInsn(INVOKESTATIC,
-                          HELPER_CLASS,
-                          "newObject",
-                          "()V");
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitMethodInsn(INVOKESTATIC, HELPER_CLASS, "newObject", "(Ljava/lang/Object;)V");
       }
       super.visitInsn(opcode);
     }

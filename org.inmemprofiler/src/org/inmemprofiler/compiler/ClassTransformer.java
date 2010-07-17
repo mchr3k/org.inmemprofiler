@@ -1,5 +1,10 @@
-package org.inmemprofiler;
+package org.inmemprofiler.compiler;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
@@ -25,12 +30,17 @@ public class ClassTransformer implements ClassFileTransformer
                           throws IllegalClassFormatException
   {
     //System.out.println("Consider modify:\t " + internalClassName);
-    if (internalClassName.startsWith("dcl"))
+    //if (internalClassName.startsWith("dcl"))
+	if (internalClassName.equals("java/lang/Object"))
     {
-      System.out.println("Actually modify: " + internalClassName);
+      System.out.println("Modifying: " + internalClassName);
       
       byte[] retVal = getInstrumentedClassBytes(internalClassName, originalClassfile);
-      return retVal;
+      File instrumentedObject = writeClassBytes(retVal, internalClassName + ".class");
+      
+      System.out.println("Save modified: " + internalClassName + " to " + instrumentedObject.getAbsolutePath());
+      
+      return null;
     }
     else
     {
@@ -55,6 +65,55 @@ public class ClassTransformer implements ClassFileTransformer
       th.printStackTrace();
       return null;
     }
+  }
+  
+  private File writeClassBytes(byte[] newBytes, String className)
+  {
+    File classOut = new File("./build/genclasses/" + className);
+    File parentDir = classOut.getParentFile();
+    boolean dirExists = parentDir.exists();
+    if (!dirExists)
+    {
+      dirExists = parentDir.mkdirs();
+    }
+    if (dirExists)
+    {
+      try
+      {
+        OutputStream out = new FileOutputStream(classOut);
+        try
+        {
+          out.write(newBytes);
+          out.flush();
+        }
+        catch (Exception ex)
+        {
+          ex.printStackTrace();
+        }
+        finally
+        {
+          try
+          {
+            out.close();
+          }
+          catch (IOException ex)
+          {
+            ex.printStackTrace();
+          }
+        }
+      }
+      catch (FileNotFoundException ex)
+      {
+        ex.printStackTrace();
+      }
+    }
+    else
+    {
+      System.out.println("Can't create directory " + parentDir
+                         + " for saving traced classfiles.");
+    }
+    
+    return classOut;
   }
   
   public void instrumentObject()

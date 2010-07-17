@@ -1,4 +1,4 @@
-package org.inmemprofiler;
+package org.inmemprofiler.compiler;
 
 import java.lang.instrument.Instrumentation;
 
@@ -34,7 +34,7 @@ public class Agent
    */
   private static void initialize(String agentArgs, Instrumentation inst)
   {
-    System.out.println("## Loaded InMemProfiler Agent.");
+    System.out.println("## Loaded InMemProfiler Compiler.");
     
     // Construct Transformer
     ClassTransformer t = new ClassTransformer(inst);
