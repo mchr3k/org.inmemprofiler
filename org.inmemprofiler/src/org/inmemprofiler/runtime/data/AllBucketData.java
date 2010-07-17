@@ -58,7 +58,7 @@ public class AllBucketData
       }
       lastLong = bucketInterval;
     }
-    str.append(liveInstances.totalContents + "\t: live objects\n");    
+    str.append(liveInstances.totalContents + "\t: live instances\n");    
     str.append("\n");
     lastLong = 0;
     for (long bucketInterval : bucketIntervals)
@@ -66,7 +66,7 @@ public class AllBucketData
       BucketData data = collectedInstances.get(bucketInterval);
       if (data.totalContents.get() > 0)
       {
-        str.append(data.totalContents + " objects in bucket " + lastLong + "s to " + bucketInterval + "s:\n");
+        str.append(data.totalContents + " instances in bucket " + lastLong + "s to " + bucketInterval + "s:\n");
         str.append(data);
         str.append("\n");
       }
@@ -74,7 +74,7 @@ public class AllBucketData
     }
     if (liveInstances.totalContents.get() > 0)
     {
-      str.append(liveInstances.totalContents + " live objects:\n");
+      str.append(liveInstances.totalContents + " live instances:\n");
       str.append(liveInstances);
       str.append("\n");
     }
