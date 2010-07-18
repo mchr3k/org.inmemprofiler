@@ -17,7 +17,7 @@ public class InstanceBucket
   public final AtomicLong totalContents = new AtomicLong();
   private final Map<String, AtomicLong> instanceCounts = new ConcurrentHashMap<String, AtomicLong>(); 
   
-  public synchronized void addInstance(String className)
+  public void addInstance(String className)
   {
     totalContents.incrementAndGet();
     AtomicLong instanceCount = instanceCounts.get(className);
@@ -32,7 +32,7 @@ public class InstanceBucket
     }    
   }
   
-  public synchronized void removeInstance(String className)
+  public void removeInstance(String className)
   {
     totalContents.decrementAndGet();
     AtomicLong instanceCount = instanceCounts.get(className);

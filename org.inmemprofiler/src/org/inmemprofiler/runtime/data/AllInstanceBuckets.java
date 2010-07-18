@@ -25,12 +25,12 @@ public class AllInstanceBuckets
     }
   }
     
-  public synchronized void addLiveInstance(String className)
+  public void addLiveInstance(String className)
   {
     liveInstanceBucket.addInstance(className);
   }
   
-  public synchronized void addCollectedInstance(String className, long instanceLifetime)
+  public void addCollectedInstance(String className, long instanceLifetime)
   {
     liveInstanceBucket.removeInstance(className);
     long bucketIndex = getBucketIndex(instanceLifetime);
