@@ -5,10 +5,8 @@ import java.util.List;
 
 import other.test.TestObject;
 
-
 public class Test
 {
-
   /**
    * @param args
    * @throws InterruptedException
@@ -54,5 +52,4 @@ public class Test
     }
     return list;
   }
-
 }
