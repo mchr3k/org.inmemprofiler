@@ -216,6 +216,7 @@ public class ProfilerDataCollector
       FileOutput.writer = new BufferedWriter(
                             new OutputStreamWriter(
                               new FileOutputStream(path + "./inmemprofiler.log", true)));
+      FileOutput.writeOutput("Profiling started\n");
     }
     catch (FileNotFoundException ex)
     {
