@@ -11,16 +11,19 @@ public class ObjectProfiler
   private static final PlaceholderHandler gHandler = new PlaceholderHandler();
    
   /**
-   * Ideally we would like to allow separate threads to allocate objects concurrently.
-   * However, we need to ensure that we don't end up recursing back into this function
-   * when an Object is allocated by the {@link ProfilerDataCollector}.
+   * This method calls through to {@link ProfilerDataCollector} to record object allocation.
+   * However, we must avoid having this call result in further object allocations which
+   * we attempt to record. If this was to happen we would hit a stack overflow.
    * <p>
-   * This could be done on a per thread basis using a ThreadLocal member variable. However,
-   * I have so far failed to get this approach to work as ThreadLocal.get() can result
-   * in an Object creation.
+   * This method relies on setting the UncaughtExceptionHandler as a marker that any
+   * further allocations by this thread should not be recorded until the 
+   * UncaughtExceptionHandler is restored.
    * <p>
-   * This method is therefore synchronized which has the unfortunate side effect of serializing
-   * all object creations. 
+   * The only case in which this would cause a problem is if one of the allocated
+   * objects relied on setting the UncaughtExceptionHandler as this update would be
+   * lost when this method returned and restored the previous handler. Thankfully, none
+   * of the objects currently used by the {@link ProfilerDataCollector} rely on
+   * setting the UncaughtExceptionHandler.
    * @param ref
    */
   public static void newObject(Object ref)
