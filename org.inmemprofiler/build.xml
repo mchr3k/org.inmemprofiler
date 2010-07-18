@@ -51,7 +51,30 @@
 
   </target>
 
-  <target name="jar-runtime" description="Create Jars" depends="build, jar-compiler">
+  
+  
+  <target name="getgitdetails" >
+    <exec executable="git" outputproperty="git.tagstring">
+      <arg value="describe"/>
+    </exec>
+    <exec executable="git" outputproperty="git.revision">
+      <arg value="rev-parse"/>
+      <arg value="HEAD"/>
+    </exec>
+    <if>
+      <contains string="${git.tagstring}" substring="cannot"/>
+      <then>
+        <property name="git.tag" value="none"/>
+      </then>
+      <else>
+        <property name="git.tag" value="${git.tagstring}"/>
+      </else>
+    </if>
+  </target>
+  
+  
+  
+  <target name="jar-runtime" description="Create Jars" depends="jar-compiler, getgitdetails">
 
     <!-- Generate modified Object class -->
     <java classname="org.inmemprofiler.compiler.InstrumentJavaLangObject" fork="true">
@@ -66,12 +89,16 @@
       <manifest>
         <attribute name="Premain-Class" value="org.inmemprofiler.runtime.Agent" />
         <attribute name="Can-Redefine-Classes" value="false" />
+        <attribute name="Git-Revision" value="${git.revision}" />
+        <attribute name="Implementation-Version" value="${git.tag}" />        
       </manifest>
       <fileset dir="./build/classes" includes="**/runtime/**/*.class" />
       <fileset dir="./build/genclasses" includes="**/*.class" />
     </jar>
 
   </target>
+  
+  
 
   <target name="deploy" description="Deploy to test project" depends="jar-runtime">
     <copy file="./build/jars/inmemprofiler-runtime.jar" todir="../Test/" />
