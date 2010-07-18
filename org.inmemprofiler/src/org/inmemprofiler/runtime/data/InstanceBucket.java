@@ -9,12 +9,15 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class BucketData
+/**
+ * A single bucket of instance counts.
+ */
+public class InstanceBucket
 {
   public final AtomicLong totalContents = new AtomicLong();
   private final Map<String, AtomicLong> instanceCounts = new ConcurrentHashMap<String, AtomicLong>(); 
   
-  public synchronized void addData(String className)
+  public synchronized void addInstance(String className)
   {
     totalContents.incrementAndGet();
     AtomicLong instanceCount = instanceCounts.get(className);
@@ -29,7 +32,7 @@ public class BucketData
     }    
   }
   
-  public synchronized void removeData(String className)
+  public synchronized void removeInstance(String className)
   {
     totalContents.decrementAndGet();
     AtomicLong instanceCount = instanceCounts.get(className);
@@ -43,8 +46,7 @@ public class BucketData
     }    
   }
   
-  @Override
-  public String toString()
+  public InstanceBucketData getSnapshot()
   {
     List<Entry<String, AtomicLong>> list = new LinkedList<Entry<String, AtomicLong>>(instanceCounts.entrySet());
     Collections.sort(list, new Comparator<Entry<String, AtomicLong>>() {
@@ -58,15 +60,36 @@ public class BucketData
         }
     });
     
+    long totalInstances = 0;
     StringBuilder str = new StringBuilder();
     for (Entry<String, AtomicLong> instanceEntry : list)
     {
-      str.append(instanceEntry.getValue());
+      long numInstances = instanceEntry.getValue().get();
+      totalInstances += numInstances;
+      str.append(numInstances);
       str.append("\t: ");
       str.append(instanceEntry.getKey());
       str.append("\n");
     }
-    return str.toString();
+    return new InstanceBucketData(str.toString(), totalInstances);
+  }
+  
+  @Override
+  public String toString()
+  {
+    return getSnapshot().str;
+  }
+  
+  public static class InstanceBucketData
+  {
+    public final String str;
+    public final long totalCount;
+    
+    public InstanceBucketData(String str, long totalCount)
+    {
+      this.str = str;
+      this.totalCount = totalCount;
+    }
   }
 
 }

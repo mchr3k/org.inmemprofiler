@@ -6,16 +6,16 @@ import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.inmemprofiler.runtime.data.AllBucketData;
+import org.inmemprofiler.runtime.data.AllInstanceBuckets;
 
 public class ProfilerDataCollector
 {
 
   private static final long[] defaultBuckets = new long[]
-  { 5, 30, 60, 5 * 60, 30 * 60, 999999999 };
+  { 5, 30, 60, 5 * 60, 30 * 60, Long.MAX_VALUE };
 
   // Recorded data
-  private static AllBucketData bucketInstances;
+  private static AllInstanceBuckets bucketInstances;
 
   // Maps for holding class names and creation times
   private static final Map<WeakReference<Object>, Long> instanceCreationTimes = new ConcurrentHashMap<WeakReference<Object>, Long>();
@@ -24,7 +24,7 @@ public class ProfilerDataCollector
   // Q for recording collection times
   private static final ReferenceQueue<Object> objectCollectedQueue = new ReferenceQueue<Object>();
 
-  public static synchronized void profileNewObject(Object ref)
+  public static void profileNewObject(Object ref)
   {
     String className = ref.getClass().getName();
 
@@ -53,18 +53,9 @@ public class ProfilerDataCollector
     bucketInstances.addLiveInstance(className);
   }
 
-  public static synchronized void outputData()
+  public static void outputData()
   {
-    try
-    {
-      enterWorkBlock();
-      
-      System.out.println(bucketInstances.toString());
-    }
-    finally
-    {
-      exitWorkBlock();
-    }
+    System.out.println(bucketInstances.toString());
   }
 
   /**
@@ -72,12 +63,14 @@ public class ProfilerDataCollector
    */
   private static class ProfilerDataCollectorThread implements Runnable
   {
+    public Thread th;
+    
     /**
      * Start this thread
      */
     public void start()
     {
-      Thread th = new Thread(this);
+      th = new Thread(this);
       th.setDaemon(true);
       th.setName("InMemProfiler-DataCollector");
       th.start();
@@ -90,24 +83,17 @@ public class ProfilerDataCollector
       {
         while (true)
         {
-          Reference<? extends Object> ref = objectCollectedQueue.remove();
-          try
-          {
-            ProfilerDataCollector.enterWorkBlock();
-            String className = ProfilerDataCollector.instanceClassName.get(ref);
-            long instanceCreationTime = ProfilerDataCollector.instanceCreationTimes
-                .remove(ref);
-            long instanceCollectionTime = System.currentTimeMillis();
-            long instanceLifeTime = instanceCollectionTime
-                - instanceCreationTime;
+          Reference<? extends Object> ref = objectCollectedQueue.remove();          
+          String className = ProfilerDataCollector.instanceClassName.get(ref);
+          
+          long instanceCreationTime = ProfilerDataCollector.instanceCreationTimes
+              .remove(ref);
+          long instanceCollectionTime = System.currentTimeMillis();
+          long instanceLifeTime = instanceCollectionTime
+              - instanceCreationTime;
 
-            ProfilerDataCollector.bucketInstances.addCollectedInstance(
-                className, instanceLifeTime / 1000);
-          }
-          finally
-          {
-            ProfilerDataCollector.exitWorkBlock();
-          }
+          ProfilerDataCollector.bucketInstances.addCollectedInstance(
+              className, instanceLifeTime / 1000);
         }
       }
       catch (InterruptedException e)
@@ -122,12 +108,23 @@ public class ProfilerDataCollector
    */
   private static class ForceGCThread implements Runnable
   {
+    private final long gcInterval;
+    public Thread th;
+    /*
+     * Record the InMem threads so we don't record allocations by these threads!
+     */
+
+    public ForceGCThread(long gcInterval)
+    {
+      this.gcInterval = gcInterval;
+    }
+
     /**
      * Start this thread
      */
     public void start()
     {
-      Thread th = new Thread(this);
+      th = new Thread(this);
       th.setDaemon(true);
       th.setName("InMemProfiler-ForceGC");
       th.start();
@@ -140,7 +137,7 @@ public class ProfilerDataCollector
       {
         while (true)
         {
-          Thread.sleep(1 * 1000);
+          Thread.sleep(gcInterval);
           System.gc();
         }
       }
@@ -152,16 +149,24 @@ public class ProfilerDataCollector
   }
 
   /**
-   * Force GC thread
+   * Periodic output thread
    */
   private static class PeriodicOutputThread implements Runnable
   {
+    public Thread th;
+    private final long periodicInterval;
+    
+    public PeriodicOutputThread(long periodicInterval)
+    {
+      this.periodicInterval = periodicInterval;
+    }
+
     /**
      * Start this thread
      */
     public void start()
     {
-      Thread th = new Thread(this);
+      th = new Thread(this);
       th.setDaemon(true);
       th.setName("InMemProfiler-PeriodicOutput");
       th.start();
@@ -174,7 +179,7 @@ public class ProfilerDataCollector
       {
         while (true)
         {
-          Thread.sleep(60 * 1000);
+          Thread.sleep(periodicInterval);
           System.out.println("Periodic output:");
           ProfilerDataCollector.outputData();
         }
@@ -187,37 +192,36 @@ public class ProfilerDataCollector
   }
 
   // Profiling control code
-  private static long workerThreadID = -1;
   static String[] classPrefixes;
 
-  static synchronized void enterWorkBlock()
-  {
-    workerThreadID = Thread.currentThread().getId();
-  }
-
-  static synchronized void exitWorkBlock()
-  {
-    workerThreadID = -1;
-  }
-
-  static synchronized boolean isProfilingAllowed()
-  {
-    return (Thread.currentThread().getId() != workerThreadID);
-  }
-
   public static void beginProfiling(long[] buckets,
-      String[] allowedClassPrefixes)
+      String[] allowedClassPrefixes, long gcInterval, long periodicInterval)
   {
     if (buckets == null)
     {
       buckets = defaultBuckets;
     }
-    bucketInstances = new AllBucketData(buckets);
+    bucketInstances = new AllInstanceBuckets(buckets);
     classPrefixes = allowedClassPrefixes;
 
-    new ForceGCThread().start();
-    new PeriodicOutputThread().start();
-    new ProfilerDataCollectorThread().start();
+    Thread[] workThreads = new Thread[3];
+    if (gcInterval > -1)
+    {
+      ForceGCThread gcTh = new ForceGCThread(gcInterval);
+      gcTh.start();
+      workThreads[0] = gcTh.th;
+    }
+    if (periodicInterval > -1)
+    {
+      PeriodicOutputThread poTh = new PeriodicOutputThread(periodicInterval);
+      poTh.start();
+      workThreads[1] = poTh.th;
+    }
+    {
+      ProfilerDataCollectorThread pdcTh = new ProfilerDataCollectorThread();
+      pdcTh.start();
+      workThreads[2] = pdcTh.th;
+    }
 
     // Ensure output happens during shutdown
     Runtime.getRuntime().addShutdownHook(new Thread()
@@ -230,6 +234,7 @@ public class ProfilerDataCollector
       }
     });
 
-    BootClassPathProfiler.profilingEnabled = true;
+    ObjectProfiler.ignoreThreads = workThreads;
+    ObjectProfiler.profilingEnabled = true;
   }
 }

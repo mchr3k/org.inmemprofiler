@@ -12,34 +12,55 @@ import java.security.ProtectionDomain;
 
 import org.objectweb.asm.ClassReader;
 
+/**
+ * ClassTransformer which invokes a standard transformer on the java.lang.Object class. 
+ */
 public class ClassTransformer implements ClassFileTransformer
 {
-
   private final Instrumentation inst;
+
   public ClassTransformer(Instrumentation inst)
   {
     this.inst = inst;
   }
 
-  @Override
-  public byte[] transform(ClassLoader loader, 
-                          String internalClassName,
-                          Class<?> classBeingRedefined,
-                          ProtectionDomain protectionDomain,
-                          byte[] originalClassfile)
-                          throws IllegalClassFormatException
+  public void instrumentObject()
   {
-    //System.out.println("Consider modify:\t " + internalClassName);
-    //if (internalClassName.startsWith("dcl"))
-	if (internalClassName.equals("java/lang/Object"))
+    try
+    {
+      Class<?>[] loadedClasses = inst.getAllLoadedClasses();
+      for (Class<?> loadedClass : loadedClasses)
+      {
+        if (!loadedClass.isAnnotation() && !loadedClass.isSynthetic()
+            && inst.isModifiableClass(loadedClass))
+        {
+          inst.retransformClasses(loadedClass);
+        }
+      }
+    }
+    catch (Throwable ex)
+    {
+      ex.printStackTrace();
+    }
+  }
+
+  @Override
+  public byte[] transform(ClassLoader loader, String internalClassName,
+      Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
+      byte[] originalClassfile) throws IllegalClassFormatException
+  {
+    if (internalClassName.equals("java/lang/Object"))
     {
       System.out.println("Modifying: " + internalClassName);
-      
-      byte[] retVal = getInstrumentedClassBytes(internalClassName, originalClassfile);
-      File instrumentedObject = writeClassBytes(retVal, internalClassName + ".class");
-      
-      System.out.println("Save modified: " + internalClassName + " to " + instrumentedObject.getAbsolutePath());
-      
+
+      byte[] retVal = getInstrumentedClassBytes(internalClassName,
+          originalClassfile);
+      File instrumentedObject = writeClassBytes(retVal, internalClassName
+          + ".class");
+
+      System.out.println("Save modified: " + internalClassName + " to "
+          + instrumentedObject.getAbsolutePath());
+
       return null;
     }
     else
@@ -54,7 +75,7 @@ public class ClassTransformer implements ClassFileTransformer
     {
       ClassReader cr = new ClassReader(classfileBuffer);
 
-      ProfiledClassWriter writer = new ProfiledClassWriter(cr);
+      ObjectClassWriter writer = new ObjectClassWriter(cr);
       cr.accept(writer, 0);
 
       return writer.toByteArray();
@@ -66,7 +87,7 @@ public class ClassTransformer implements ClassFileTransformer
       return null;
     }
   }
-  
+
   private File writeClassBytes(byte[] newBytes, String className)
   {
     File classOut = new File("./build/genclasses/" + className);
@@ -110,32 +131,9 @@ public class ClassTransformer implements ClassFileTransformer
     else
     {
       System.out.println("Can't create directory " + parentDir
-                         + " for saving traced classfiles.");
+          + " for saving traced classfiles.");
     }
-    
+
     return classOut;
-  }
-  
-  public void instrumentObject()
-  {
-    try
-    {
-      Class<?>[] loadedClasses = inst.getAllLoadedClasses();
-      for (Class<?> loadedClass : loadedClasses)
-      {
-        if (!loadedClass.isAnnotation() &&
-            !loadedClass.isSynthetic() && 
-            inst.isModifiableClass(loadedClass))
-        {          
-          //System.out.println("Attempt to modify:\t " + loadedClass.getName());
-          
-          inst.retransformClasses(loadedClass);
-        }
-      }
-    }
-    catch (Throwable ex)
-    {
-      ex.printStackTrace();
-    }
   }
 }

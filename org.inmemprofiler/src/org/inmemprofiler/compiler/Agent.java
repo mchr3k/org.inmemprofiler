@@ -2,6 +2,9 @@ package org.inmemprofiler.compiler;
 
 import java.lang.instrument.Instrumentation;
 
+/**
+ * "Compiler" used to add instrumentation to the standard java.lang.Object class.
+ */
 public class Agent
 {
   /**
@@ -11,28 +14,6 @@ public class Agent
    * @param inst
    */
   public static void premain(String agentArgs, Instrumentation inst)
-  {
-    initialize(agentArgs, inst);
-  }
-
-  /**
-   * Entry point when loaded into running JVM.
-   * 
-   * @param agentArgs
-   * @param inst
-   */
-  public static void agentmain(String agentArgs, Instrumentation inst)
-  {
-    initialize(agentArgs, inst);
-  }
-
-  /**
-   * Common init function.
-   * 
-   * @param agentArgs
-   * @param inst
-   */
-  private static void initialize(String agentArgs, Instrumentation inst)
   {
     System.out.println("## Loaded InMemProfiler Compiler.");
     

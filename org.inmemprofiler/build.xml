@@ -54,7 +54,7 @@
   <target name="jar-runtime" description="Create Jars" depends="build, jar-compiler">
 
     <!-- Generate modified Object class -->
-    <java classname="org.inmemprofiler.compiler.TransformObject" fork="true">
+    <java classname="org.inmemprofiler.compiler.InstrumentJavaLangObject" fork="true">
       <jvmarg value="-javaagent:./build/jars/inmemprofiler-compiler.jar" />
       <classpath>
         <pathelement location="./build/jars/inmemprofiler-compiler.jar" />

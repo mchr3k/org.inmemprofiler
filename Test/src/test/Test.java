@@ -40,7 +40,7 @@ public class Test
     
     // Discard 5 which are 10 seconds old
     round3 = null;
-    Thread.sleep(10 * 1000);
+    Thread.sleep(6 * 1000);
     System.out.println("===");
   }
 

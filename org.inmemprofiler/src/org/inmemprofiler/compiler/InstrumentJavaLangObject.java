@@ -1,8 +1,7 @@
 package org.inmemprofiler.compiler;
 
-public class TransformObject
+public class InstrumentJavaLangObject
 {
-
   /**
    * @param args
    */
@@ -10,5 +9,4 @@ public class TransformObject
   {
     System.out.println("Complete");
   }
-
 }

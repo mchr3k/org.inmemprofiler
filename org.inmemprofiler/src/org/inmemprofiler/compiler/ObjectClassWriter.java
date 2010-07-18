@@ -9,7 +9,10 @@ import org.objectweb.asm.MethodAdapter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class ProfiledClassWriter extends ClassWriter
+/**
+ * Transform java.lang.Object class to include instrumentation call in the constructor.
+ */
+public class ObjectClassWriter extends ClassWriter
 {
   /**
    * cTor
@@ -18,7 +21,7 @@ public class ProfiledClassWriter extends ClassWriter
    * @param xiReader
    * @param analysis
    */
-  public ProfiledClassWriter(ClassReader xiReader)
+  public ObjectClassWriter(ClassReader xiReader)
   {
     super(xiReader, COMPUTE_MAXS);
   }
@@ -48,7 +51,7 @@ public class ProfiledClassWriter extends ClassWriter
    */
   private static class ProfiledMethodWriter extends MethodAdapter
   {
-    private static final String HELPER_CLASS = "org/inmemprofiler/runtime/BootClassPathProfiler";
+    private static final String HELPER_CLASS = "org/inmemprofiler/runtime/ObjectProfiler";
 
     /**
      * cTor
