@@ -80,7 +80,7 @@ public class AllInstanceBuckets
       if (dataSnap.totalCount > 0)
       {
         str.append(dataSnap.totalCount);
-        str.append("\t: " + lastLong + "s - " + bucketInterval + "s");        
+        str.append("\t: " + lastLong + "(s) - " + printLong(bucketInterval) + "(s)");        
         str.append("\n");
       }
       lastLong = bucketInterval;
@@ -97,7 +97,7 @@ public class AllInstanceBuckets
       InstanceBucketData dataSnap = snaps[ii];
       if (dataSnap.totalCount > 0)
       {
-        str.append(dataSnap.totalCount + " instances in bucket " + lastLong + "s to " + bucketInterval + "s:\n");
+        str.append(dataSnap.totalCount + " instances in bucket " + lastLong + "(s) to " + printLong(bucketInterval) + "(s):\n");
         str.append(dataSnap.str);
         str.append("\n");
       }
@@ -108,5 +108,17 @@ public class AllInstanceBuckets
     str.append(liveSnap.str);
     str.append("\n");
     return str.toString();
+  }
+  
+  private String printLong(long val)
+  {
+    if (val == Long.MAX_VALUE)
+    {
+      return "inf";
+    }
+    else
+    {
+      return Long.toString(val);
+    }
   }
 }

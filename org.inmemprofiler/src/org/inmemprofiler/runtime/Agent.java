@@ -30,6 +30,7 @@ public class Agent
     String[] prefixes = null;
     long gcInterval = -1;
     long periodicInterval = -1;
+    String path = null;
     
     if ((agentArgs != null) && (agentArgs.indexOf('[') > -1))
     {
@@ -105,10 +106,22 @@ public class Agent
             ex.printStackTrace();
           }
         }
+        else if (arg.startsWith("output-"))
+        {
+          arg = arg.substring("output-".length());
+          if (arg.length() > 0)
+          {
+            path = arg;
+          }
+        }
       }
     }
     
     // Load profiler classes
-    ProfilerDataCollector.beginProfiling(buckets, prefixes, gcInterval, periodicInterval);
+    ProfilerDataCollector.beginProfiling(buckets, 
+                                         prefixes, 
+                                         gcInterval, 
+                                         periodicInterval, 
+                                         path);
   }
 }

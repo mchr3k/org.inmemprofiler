@@ -1,5 +1,9 @@
 package org.inmemprofiler.runtime;
 
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -7,6 +11,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.inmemprofiler.runtime.data.AllInstanceBuckets;
+import org.inmemprofiler.runtime.data.FileOutput;
 
 public class ProfilerDataCollector
 {
@@ -53,9 +58,10 @@ public class ProfilerDataCollector
     bucketInstances.addLiveInstance(className);
   }
 
-  public static void outputData()
+  public static void outputData(StringBuilder str)
   {
-    System.out.println(bucketInstances.toString());
+    str.append(bucketInstances.toString());
+    FileOutput.writeOutput(str.toString());
   }
 
   /**
@@ -180,8 +186,8 @@ public class ProfilerDataCollector
         while (true)
         {
           Thread.sleep(periodicInterval);
-          System.out.println("Periodic output:");
-          ProfilerDataCollector.outputData();
+          StringBuilder str = new StringBuilder("Periodic output:\n");
+          ProfilerDataCollector.outputData(str);
         }
       }
       catch (InterruptedException e)
@@ -195,8 +201,27 @@ public class ProfilerDataCollector
   static String[] classPrefixes;
 
   public static void beginProfiling(long[] buckets,
-      String[] allowedClassPrefixes, long gcInterval, long periodicInterval)
+                                    String[] allowedClassPrefixes, 
+                                    long gcInterval, 
+                                    long periodicInterval,
+                                    String path)
   {
+    if (path == null)
+    {
+      path = "./";
+    }
+    
+    try
+    {
+      FileOutput.writer = new BufferedWriter(
+                            new OutputStreamWriter(
+                              new FileOutputStream(path + "./inmemprofiler.log", true)));
+    }
+    catch (FileNotFoundException ex)
+    {
+      ex.printStackTrace();
+    }
+    
     if (buckets == null)
     {
       buckets = defaultBuckets;
@@ -204,7 +229,7 @@ public class ProfilerDataCollector
     bucketInstances = new AllInstanceBuckets(buckets);
     classPrefixes = allowedClassPrefixes;
 
-    Thread[] workThreads = new Thread[3];
+    Thread[] workThreads = new Thread[4];
     if (gcInterval > -1)
     {
       ForceGCThread gcTh = new ForceGCThread(gcInterval);
@@ -222,17 +247,20 @@ public class ProfilerDataCollector
       pdcTh.start();
       workThreads[2] = pdcTh.th;
     }
-
-    // Ensure output happens during shutdown
-    Runtime.getRuntime().addShutdownHook(new Thread()
     {
-      @Override
-      public void run()
+      // Ensure output happens during shutdown
+      workThreads[3] = new Thread()
       {
-        System.out.println("Shutdown output:");
-        ProfilerDataCollector.outputData();
-      }
-    });
+        @Override
+        public void run()
+        {
+          StringBuilder str = new StringBuilder("Shutdown output:\n");
+          ProfilerDataCollector.outputData(str);
+        }
+      };
+      
+      Runtime.getRuntime().addShutdownHook(workThreads[3]);
+    }        
 
     ObjectProfiler.ignoreThreads = workThreads;
     ObjectProfiler.profilingEnabled = true;
