@@ -3,7 +3,8 @@ package test;
 import java.util.ArrayList;
 import java.util.List;
 
-import dcl.test.TestObject;
+import other.test.TestObject;
+
 
 public class Test
 {

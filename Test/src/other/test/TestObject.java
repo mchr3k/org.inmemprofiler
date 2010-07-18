@@ -1,4 +1,4 @@
-package dcl.test;
+package other.test;
 
 public class TestObject
 {
