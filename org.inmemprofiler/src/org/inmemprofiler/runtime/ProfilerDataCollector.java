@@ -4,14 +4,13 @@ import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
-import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
-import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.inmemprofiler.runtime.data.AllInstanceBuckets;
 import org.inmemprofiler.runtime.data.FileOutput;
+import org.inmemprofiler.runtime.data.LifetimeWeakReference;
 
 public class ProfilerDataCollector
 {
@@ -23,8 +22,8 @@ public class ProfilerDataCollector
   private static AllInstanceBuckets bucketInstances;
 
   // Maps for holding class names and creation times
-  private static final Map<WeakReference<Object>, Long> instanceCreationTimes = new ConcurrentHashMap<WeakReference<Object>, Long>();
-  private static final Map<WeakReference<Object>, String> instanceClassName = new ConcurrentHashMap<WeakReference<Object>, String>();
+  private static final Map<LifetimeWeakReference, Object> weakRefSet = new ConcurrentHashMap<LifetimeWeakReference, Object>();
+  private static final Object setValue = new Object();
 
   // Q for recording collection times
   private static final ReferenceQueue<Object> objectCollectedQueue = new ReferenceQueue<Object>();
@@ -34,6 +33,8 @@ public class ProfilerDataCollector
     String className = ref.getClass().getName();
 
     boolean earlyReturn = false;
+    
+    // Check whether this class is explicitly allowed
     if (classPrefixes != null)
     {
       earlyReturn = true;
@@ -42,6 +43,26 @@ public class ProfilerDataCollector
         if (className.startsWith(classPrefix))
         {
           earlyReturn = false;
+          break;
+        }
+      }
+    }
+
+    if (earlyReturn)
+    {
+      return;
+    }
+    
+    // Check whether this class is explicitly not allowed
+    if (excludeClassPrefixes != null)
+    {
+      earlyReturn = false;
+      for (String classPrefix : excludeClassPrefixes)
+      {
+        if (className.startsWith(classPrefix))
+        {
+          earlyReturn = true;
+          break;
         }
       }
     }
@@ -51,17 +72,26 @@ public class ProfilerDataCollector
       return;
     }
 
-    WeakReference<Object> key = new WeakReference<Object>(ref,
-        objectCollectedQueue);
-    instanceCreationTimes.put(key, System.currentTimeMillis());
-    instanceClassName.put(key, className);
-    bucketInstances.addLiveInstance(className);
+    AllInstanceBuckets lBucketInstances = bucketInstances;
+    lBucketInstances.addLiveInstance(className);
+    LifetimeWeakReference key = new LifetimeWeakReference(ref, 
+                                                          objectCollectedQueue, 
+                                                          className, 
+                                                          System.currentTimeMillis(),
+                                                          lBucketInstances);
+    weakRefSet.put(key, setValue);
   }
 
   public static void outputData(StringBuilder str)
   {
     str.append(bucketInstances.toString());
     FileOutput.writeOutput(str.toString());
+  }
+  
+  static void resetData()
+  {
+    bucketInstances = new AllInstanceBuckets(bucketInstances.bucketIntervals);
+    FileOutput.writeOutput("Instance data reset\n");
   }
 
   /**
@@ -89,17 +119,17 @@ public class ProfilerDataCollector
       {
         while (true)
         {
-          Reference<? extends Object> ref = objectCollectedQueue.remove();          
-          String className = ProfilerDataCollector.instanceClassName.get(ref);
+          LifetimeWeakReference ref = (LifetimeWeakReference)objectCollectedQueue.remove();
           
-          long instanceCreationTime = ProfilerDataCollector.instanceCreationTimes
-              .remove(ref);
+          String className = ref.className;          
+          long instanceCreationTime = ref.creationTime;
+          
           long instanceCollectionTime = System.currentTimeMillis();
           long instanceLifeTime = instanceCollectionTime
               - instanceCreationTime;
 
-          ProfilerDataCollector.bucketInstances.addCollectedInstance(
-              className, instanceLifeTime / 1000);
+          ref.bucketInstances.addCollectedInstance(className, 
+                                                   instanceLifeTime / 1000);
         }
       }
       catch (InterruptedException e)
@@ -186,7 +216,7 @@ public class ProfilerDataCollector
         while (true)
         {
           Thread.sleep(periodicInterval);
-          StringBuilder str = new StringBuilder("Periodic output:\n");
+          StringBuilder str = new StringBuilder("Reason for output: Periodic output\n");
           ProfilerDataCollector.outputData(str);
         }
       }
@@ -198,10 +228,12 @@ public class ProfilerDataCollector
   }
 
   // Profiling control code
-  static String[] classPrefixes;
+  private static String[] classPrefixes;
+  private static String[] excludeClassPrefixes;
 
   public static void beginProfiling(long[] buckets,
-                                    String[] allowedClassPrefixes, 
+                                    String[] allowedPrefixes, 
+                                    String[] excludePrefixes, 
                                     long gcInterval, 
                                     long periodicInterval,
                                     String path)
@@ -216,6 +248,7 @@ public class ProfilerDataCollector
       FileOutput.writer = new BufferedWriter(
                             new OutputStreamWriter(
                               new FileOutputStream(path + "./inmemprofiler.log", true)));
+      FileOutput.writeOutput("## InMemProfiler Log Initialized");
     }
     catch (FileNotFoundException ex)
     {
@@ -227,7 +260,8 @@ public class ProfilerDataCollector
       buckets = defaultBuckets;
     }
     bucketInstances = new AllInstanceBuckets(buckets);
-    classPrefixes = allowedClassPrefixes;
+    classPrefixes = allowedPrefixes;
+    excludeClassPrefixes = excludePrefixes;
 
     Thread[] workThreads = new Thread[4];
     if (gcInterval > -1)
@@ -254,7 +288,7 @@ public class ProfilerDataCollector
         @Override
         public void run()
         {
-          StringBuilder str = new StringBuilder("Shutdown output:\n");
+          StringBuilder str = new StringBuilder("Reason for output: JVM Shutdown\n");
           ProfilerDataCollector.outputData(str);
         }
       };

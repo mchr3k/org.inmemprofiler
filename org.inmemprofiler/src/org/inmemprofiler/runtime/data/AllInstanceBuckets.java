@@ -14,7 +14,7 @@ public class AllInstanceBuckets
 {
   private final InstanceBucket liveInstanceBucket = new InstanceBucket();
   private Map<Long,InstanceBucket> collectedInstanceBuckets = new ConcurrentHashMap<Long, InstanceBucket>();
-  private final long[] bucketIntervals;
+  public final long[] bucketIntervals;
   
   public AllInstanceBuckets(long[] buckets)
   {
@@ -106,7 +106,6 @@ public class AllInstanceBuckets
     }
     str.append(liveSnap.totalCount + " live instances:\n");
     str.append(liveSnap.str);
-    str.append("\n");
     return str.toString();
   }
   
