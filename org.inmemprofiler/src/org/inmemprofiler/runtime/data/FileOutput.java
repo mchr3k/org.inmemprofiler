@@ -14,6 +14,7 @@ public class FileOutput
     {
       try
       {
+        writer.write("===\n");
         writer.write(new Date().toString() + ":\n");
         writer.write(output + "\n");
         writer.flush();

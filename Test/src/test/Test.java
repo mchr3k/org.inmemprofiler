@@ -3,6 +3,8 @@ package test;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.inmemprofiler.runtime.Profiler;
+
 import other.test.TestObject;
 
 public class Test
@@ -13,6 +15,8 @@ public class Test
    */
   public static void main(String[] args) throws Exception
   {
+    Profiler.beginProfiling("[bucket-5,15,25,35,45,55[classes-other,java.util[excludeclasses-java.util.LinkedList$ListItr[gc-1[foo");
+    
     // Allocate 5 objects
     List<TestObject> round1 = allocateObjects(5);
     Thread.sleep(10 * 1000);
@@ -20,6 +24,9 @@ public class Test
     // Allocate 5 objects
     List<TestObject> round2 = allocateObjects(5);
     Thread.sleep(10 * 1000);
+    
+    Profiler.outputData();
+    Profiler.resetData();
     
     // Allocate 5 objects
     List<TestObject> round3 = allocateObjects(5);
