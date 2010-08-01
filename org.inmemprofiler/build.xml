@@ -3,6 +3,17 @@
   <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpath="./lib/ant-contrib-1.0b3.jar" />
   <taskdef name="jarjar" classname="com.tonicsystems.jarjar.JarJarTask" classpath="./lib/jarjar-1.0.jar" />
 
+  
+  <!--======================================================================-->
+  <!-- Setup OS specific var                                                -->
+  <!--======================================================================-->
+  <condition property="os.type" value="win">
+    <os family="windows"/>
+  </condition>
+
+  <condition property="os.type" value="linux">
+    <os family="unix"/>
+  </condition>
 
 
   <target name="help">
@@ -32,6 +43,47 @@
   </target>
 
 
+
+  <!--======================================================================-->
+  <!-- Build-C                                                              -->
+  <!--======================================================================-->
+  <target name="build-C" description="Compile code and create dll">
+    <echo>Dependencies:</echo>
+    <echo>- MinGW Installed and bin folder in PATH</echo>
+    <echo>- JDK 1.5+ Bin folder in PATH</echo>
+    <property environment="env"/>
+    <mkdir dir="${build.native.dir}"/>
+
+    <if>
+      <equals arg1="${os.type}" arg2="win"/>
+      <then>
+        <echo>Windows build</echo>
+        <exec dir="jvmti" executable="gcc">
+          <arg line="-I'${env.JAVA_HOME}/include'
+                     -I'${env.JAVA_HOME}/include/win32'
+                     -I'${env.JAVA_HOME}/include/linux'
+                     -c objectSizer.c -o objectSizer.o"/>
+        </exec>
+        <exec dir="jvmti" executable="gcc">
+          <arg line="-shared -Wl,--enable-stdcall-fixup -o objectSizer.dll objectSizer.o objectSizer.def"></arg>
+        </exec>
+      </then>
+      <else>
+        <echo>Linux build</echo>
+        <exec dir="jvmti" executable="gcc">
+          <arg line="-I'${env.JAVA_HOME}/include'
+                     -I'${env.JAVA_HOME}/include/win32'
+                     -I'${env.JAVA_HOME}/include/linux'
+                     -c objectSizer.c -o objectSizer.o"/>
+        </exec>        
+        <exec dir="jvmti" executable="gcc">
+          <arg line="-shared -o libobjectSizer.so objectSizer.o"></arg>
+        </exec>
+      </else>
+    </if>
+  </target>
+  
+  
 
   <target name="jar-compiler" description="Create Jars" depends="build">
 

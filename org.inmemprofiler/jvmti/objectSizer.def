@@ -1,0 +1,4 @@
+EXPORTS
+Agent_OnLoad
+Agent_OnUnload
+Java_org_inmemprofiler_runtime_ObjectSizer_getObjectSize
