@@ -69,9 +69,9 @@ JNIEXPORT jlong JNICALL Java_org_inmemprofiler_runtime_ObjectSizer_getObjectSize
   jlong      xoSize; 
   jvmtiError error;
   
-  GetObjectSize(gdata->jvmti,
-                xiObj,
-                &xoSize);                
+  error = (*(gdata->jvmti))->GetObjectSize(gdata->jvmti,
+                                           xiObj,
+                                           &xoSize);                
   check_jvmti_error(gdata->jvmti, error, "Cannot get size of object");
   
   return xoSize;
