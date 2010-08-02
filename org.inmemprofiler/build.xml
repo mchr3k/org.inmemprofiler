@@ -30,7 +30,7 @@
 
 
 
-  <target name="build" description="Comile classes">
+  <target name="build" description="Comile classes" depends="build-C">
     <mkdir dir="./build" />
     <mkdir dir="./build/classes" />
 
@@ -52,7 +52,6 @@
     <echo>- MinGW Installed and bin folder in PATH</echo>
     <echo>- JDK 1.5+ Bin folder in PATH</echo>
     <property environment="env"/>
-    <mkdir dir="${build.native.dir}"/>
 
     <if>
       <equals arg1="${os.type}" arg2="win"/>
@@ -154,6 +153,7 @@
 
   <target name="deploy" description="Deploy to test project" depends="jar-runtime">
     <copy file="./build/jars/inmemprofiler-runtime.jar" todir="../Test/" />
+    <copy file="./jvmti/objectSizer.dll" todir="../Test/" />
   </target>
 
 </project>

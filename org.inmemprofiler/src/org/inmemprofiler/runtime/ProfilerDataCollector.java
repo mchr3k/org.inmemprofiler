@@ -72,12 +72,15 @@ public class ProfilerDataCollector
       return;
     }
 
+    long instanceSize = ObjectSizer.getObjectSize(ref);
+    
     AllInstanceBuckets lBucketInstances = bucketInstances;
-    lBucketInstances.addLiveInstance(className);
+    lBucketInstances.addLiveInstance(className, instanceSize);
     LifetimeWeakReference key = new LifetimeWeakReference(ref, 
                                                           objectCollectedQueue, 
                                                           className, 
                                                           System.currentTimeMillis(),
+                                                          instanceSize,
                                                           lBucketInstances);
     weakRefSet.put(key, setValue);
   }
@@ -121,7 +124,8 @@ public class ProfilerDataCollector
         {
           LifetimeWeakReference ref = (LifetimeWeakReference)objectCollectedQueue.remove();
           
-          String className = ref.className;          
+          String className = ref.className;        
+          long instanceSize = ref.size;
           long instanceCreationTime = ref.creationTime;
           
           long instanceCollectionTime = System.currentTimeMillis();
@@ -129,6 +133,7 @@ public class ProfilerDataCollector
               - instanceCreationTime;
 
           ref.bucketInstances.addCollectedInstance(className, 
+                                                   instanceSize,
                                                    instanceLifeTime / 1000);
         }
       }
