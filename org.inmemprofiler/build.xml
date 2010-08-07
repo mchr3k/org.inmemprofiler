@@ -75,7 +75,7 @@
                      -c objectSizer.c -o objectSizer.o" />
         </exec>
         <exec dir="jvmti" executable="gcc">
-          <arg line="-shared -Wl,--enable-stdcall-fixup -o objectSizer.dll objectSizer.o java_crw_demo.o agent_util.o objectSizer.def">
+          <arg line="-shared -Wl,--enable-stdcall-fixup -o inmemprofiler-agent.dll objectSizer.o java_crw_demo.o agent_util.o objectSizer.def">
           </arg>
         </exec>
       </then>
@@ -97,7 +97,7 @@
                      -c objectSizer.c -o objectSizer.o" />
         </exec>        
         <exec dir="jvmti" executable="gcc">
-          <arg line="-shared -o libobjectSizer.so objectSizer.o java_crw_demo.o agent_util.o">
+          <arg line="-shared -o libinmemprofiler-agent.so objectSizer.o java_crw_demo.o agent_util.o">
           </arg>
         </exec>
       </else>
@@ -145,11 +145,11 @@
       <equals arg1="${os.type}" arg2="win" />
       <then>
         <echo>Windows build</echo>
-        <copy file="./jvmti/objectSizer.dll" todir="./build/binaries/" />
+        <copy file="./jvmti/inmemprofiler-agent.dll" todir="./build/binaries/" />
       </then>
       <else>
         <echo>Linux build</echo>
-        <copy file="./jvmti/libobjectSizer.so" todir="./build/binaries/" />
+        <copy file="./jvmti/libinmemprofiler-agent.so" todir="./build/binaries/" />
       </else>
     </if>
 
@@ -163,11 +163,11 @@
       <equals arg1="${os.type}" arg2="win" />
       <then>
         <echo>Windows build</echo>
-        <copy file="./build/binaries/objectSizer.dll" todir="../Test/" />
+        <copy file="./build/binaries/inmemprofiler-agent.dll" todir="../Test/" />
       </then>
       <else>
         <echo>Linux build</echo>
-        <copy file="./build/binaries/libobjectSizer.so" todir="../Test/" />
+        <copy file="./build/binaries/libinmemprofiler-agent.so" todir="../Test/" />
       </else>
     </if>    
   </target>
