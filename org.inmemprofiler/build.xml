@@ -3,16 +3,16 @@
   <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpath="./lib/ant-contrib-1.0b3.jar" />
   <taskdef name="jarjar" classname="com.tonicsystems.jarjar.JarJarTask" classpath="./lib/jarjar-1.0.jar" />
 
-  
+
   <!--======================================================================-->
   <!-- Setup OS specific var                                                -->
   <!--======================================================================-->
   <condition property="os.type" value="win">
-    <os family="windows"/>
+    <os family="windows" />
   </condition>
 
   <condition property="os.type" value="linux">
-    <os family="unix"/>
+    <os family="unix" />
   </condition>
 
 
@@ -53,105 +53,123 @@
     <echo>Dependencies:</echo>
     <echo>- MinGW Installed and bin folder in PATH</echo>
     <echo>- JDK 1.5+ Bin folder in PATH</echo>
-    <property environment="env"/>
+    <property environment="env" />
 
     <if>
-      <equals arg1="${os.type}" arg2="win"/>
+      <equals arg1="${os.type}" arg2="win" />
       <then>
         <echo>Windows build</echo>
         <exec dir="jvmti" executable="gcc">
           <arg line="-I'${env.JAVA_HOME}/include'
                      -I'${env.JAVA_HOME}/include/win32'
-                     -I'${env.JAVA_HOME}/include/linux'
-                     -c agent_util.c -o agent_util.o"/>
+                     -c agent_util.c -o agent_util.o" />
         </exec>
         <exec dir="jvmti" executable="gcc">
           <arg line="-I'${env.JAVA_HOME}/include'
                      -I'${env.JAVA_HOME}/include/win32'
-                     -I'${env.JAVA_HOME}/include/linux'
-                     -c java_crw_demo.c -o java_crw_demo.o"/>
-        </exec>
-		<exec dir="jvmti" executable="gcc">
-          <arg line="-I'${env.JAVA_HOME}/include'
-                     -I'${env.JAVA_HOME}/include/win32'
-                     -I'${env.JAVA_HOME}/include/linux'
-                     -c objectSizer.c -o objectSizer.o"/>
+                     -c java_crw_demo.c -o java_crw_demo.o" />
         </exec>
         <exec dir="jvmti" executable="gcc">
-          <arg line="-shared -Wl,--enable-stdcall-fixup -o objectSizer.dll objectSizer.o java_crw_demo.o agent_util.o objectSizer.def"></arg>
+          <arg line="-I'${env.JAVA_HOME}/include'
+                     -I'${env.JAVA_HOME}/include/win32'
+                     -c objectSizer.c -o objectSizer.o" />
+        </exec>
+        <exec dir="jvmti" executable="gcc">
+          <arg line="-shared -Wl,--enable-stdcall-fixup -o objectSizer.dll objectSizer.o java_crw_demo.o agent_util.o objectSizer.def">
+          </arg>
         </exec>
       </then>
       <else>
         <echo>Linux build</echo>
         <exec dir="jvmti" executable="gcc">
           <arg line="-I'${env.JAVA_HOME}/include'
-                     -I'${env.JAVA_HOME}/include/win32'
                      -I'${env.JAVA_HOME}/include/linux'
-                     -c objectSizer.c -o objectSizer.o"/>
+                     -c agent_util.c -o agent_util.o" />
+        </exec>
+        <exec dir="jvmti" executable="gcc">
+          <arg line="-I'${env.JAVA_HOME}/include'
+                     -I'${env.JAVA_HOME}/include/linux'
+                     -c java_crw_demo.c -o java_crw_demo.o" />
+        </exec>
+        <exec dir="jvmti" executable="gcc">
+          <arg line="-I'${env.JAVA_HOME}/include'
+                     -I'${env.JAVA_HOME}/include/linux'
+                     -c objectSizer.c -o objectSizer.o" />
         </exec>        
         <exec dir="jvmti" executable="gcc">
-          <arg line="-shared -o libobjectSizer.so objectSizer.o"></arg>
+          <arg line="-shared -o libobjectSizer.so objectSizer.o java_crw_demo.o agent_util.o">
+          </arg>
         </exec>
       </else>
     </if>
   </target>
-  
-  <target name="getgitdetails" >
+
+  <target name="getgitdetails">
     <exec executable="git" outputproperty="git.tagstring">
-      <arg value="describe"/>
+      <arg value="describe" />
     </exec>
     <exec executable="git" outputproperty="git.revision">
-      <arg value="rev-parse"/>
-      <arg value="HEAD"/>
+      <arg value="rev-parse" />
+      <arg value="HEAD" />
     </exec>
     <if>
-      <contains string="${git.tagstring}" substring="cannot"/>
+      <contains string="${git.tagstring}" substring="cannot" />
       <then>
-        <property name="git.tag" value="none"/>
+        <property name="git.tag" value="none" />
       </then>
       <else>
-        <property name="git.tag" value="${git.tagstring}"/>
+        <property name="git.tag" value="${git.tagstring}" />
       </else>
     </if>
   </target>
-  
-  
-  
+
+
+
   <target name="binaries" description="Create Binaries (Jar + JVMTI Agent)" depends="build, getgitdetails">
 
     <mkdir dir="./build/binaries/" />
-  
+
     <!-- Profiler Runtime -->
     <jar jarfile="./build/binaries/inmemprofiler-runtime.jar" compress="false">
       <manifest>
         <attribute name="Premain-Class" value="org.inmemprofiler.runtime.Agent" />
         <attribute name="Can-Redefine-Classes" value="false" />
         <attribute name="Git-Revision" value="${git.revision}" />
-        <attribute name="Implementation-Version" value="${git.tag}" />        
+        <attribute name="Implementation-Version" value="${git.tag}" />
       </manifest>
       <fileset dir="./build/classes" includes="**/runtime/**/*.class" />
     </jar>
-	
-	<!-- JVM TI Agent -->
+
+    <!-- JVM TI Agent -->
     <if>
-      <equals arg1="${os.type}" arg2="win"/>
+      <equals arg1="${os.type}" arg2="win" />
       <then>
-        <echo>Windows build</echo>	
-	    <copy file="./jvmti/objectSizer.dll" todir="./build/binaries/" />
-	  </then>
-	  <else>
-        <echo>Linux build</echo>	
-	    <copy file="./jvmti/libobjectSizer.so" todir="./build/binaries/" />
+        <echo>Windows build</echo>
+        <copy file="./jvmti/objectSizer.dll" todir="./build/binaries/" />
+      </then>
+      <else>
+        <echo>Linux build</echo>
+        <copy file="./jvmti/libobjectSizer.so" todir="./build/binaries/" />
       </else>
-    </if>	  
+    </if>
 
   </target>
-  
-  
+
+
 
   <target name="deploy" description="Deploy to test project" depends="binaries">
-    <copy file="./build/jars/inmemprofiler-runtime.jar" todir="../Test/" />
-	<copy file="./jvmti/objectSizer.dll" todir="../Test/" />
+    <copy file="./build/binaries/inmemprofiler-runtime.jar" todir="../Test/" />    
+    <if>
+      <equals arg1="${os.type}" arg2="win" />
+      <then>
+        <echo>Windows build</echo>
+        <copy file="./build/binaries/objectSizer.dll" todir="../Test/" />
+      </then>
+      <else>
+        <echo>Linux build</echo>
+        <copy file="./build/binaries/libobjectSizer.so" todir="../Test/" />
+      </else>
+    </if>    
   </target>
 
 </project>

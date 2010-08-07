@@ -21,11 +21,12 @@ public class Profiler
       String[] excludePrefixes = null;
       long gcInterval = -1;
       long periodicInterval = -1;
+      long numResets = 0;
       String path = null;
       
-      if ((allArgs != null) && (allArgs.indexOf('[') > -1))
+      if ((allArgs != null) && (allArgs.indexOf('#') > -1))
       {
-        String[] args = allArgs.split("\\[");
+        String[] args = allArgs.split("#");
         for (String arg : args)
         {
           if (arg.startsWith("bucket-"))
@@ -52,9 +53,9 @@ public class Profiler
               }
             }
           }
-          else if (arg.startsWith("classes-"))
+          else if (arg.startsWith("include-"))
           {
-            arg = arg.substring("classes-".length());
+            arg = arg.substring("include-".length());
             if (arg.indexOf(",") > -1)
             {
               String[] prefixStrings = arg.split(",");
@@ -65,9 +66,9 @@ public class Profiler
               prefixes = new String[] {arg};
             }
           }
-          else if (arg.startsWith("excludeclasses-"))
+          else if (arg.startsWith("exclude-"))
           {
-            arg = arg.substring("excludeclasses-".length());
+            arg = arg.substring("exclude-".length());
             if (arg.indexOf(",") > -1)
             {
               String[] prefixStrings = arg.split(",");
@@ -97,6 +98,19 @@ public class Profiler
           else if (arg.startsWith("periodic-"))
           {
             arg = arg.substring("periodic-".length());
+            if (arg.contains(","))
+            {
+              String[] argParts = arg.split(",");
+              arg = argParts[0];
+              try
+              {
+                numResets = Long.parseLong(argParts[1]);
+              }
+              catch (NumberFormatException ex)
+              {
+                ex.printStackTrace();
+              }
+            }
             try
             {
               long argVal = Long.parseLong(arg);
@@ -130,8 +144,10 @@ public class Profiler
                                            prefixes,
                                            excludePrefixes,
                                            gcInterval, 
-                                           periodicInterval, 
-                                           path);
+                                           periodicInterval,
+                                           numResets,
+                                           path,
+                                           allArgs);
       
       profilingStarted = true;
     }

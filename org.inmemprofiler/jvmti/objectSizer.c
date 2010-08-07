@@ -236,13 +236,20 @@ Agent_OnLoad(JavaVM *vm, char *options, void *reserved)
 	else
 	{
 	  int optionsLen = strlen(options);
-	  char* storedOptions = malloc(optionsLen);
-	  if (storedOptions == NULL)
+	  if (optionsLen == 0)
 	  {
-	    fatal_error("Failed to save options\n");
+	    gdata->options = NULL;
 	  }
-	  strcpy(storedOptions, options);
-	  gdata->options = storedOptions;
+	  else
+	  {
+	    char* storedOptions = malloc(optionsLen);
+	    if (storedOptions == NULL)
+	    {
+  	      fatal_error("Failed to save options\n");
+	    }
+	    strncpy(storedOptions, options, (size_t)optionsLen);
+	    gdata->options = storedOptions;
+	  }
 	}
 	
     /* We return JNI_OK to signify success */

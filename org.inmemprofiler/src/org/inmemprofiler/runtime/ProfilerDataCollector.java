@@ -197,10 +197,12 @@ public class ProfilerDataCollector
   {
     public Thread th;
     private final long periodicInterval;
+    private long numResets;
     
-    public PeriodicOutputThread(long periodicInterval)
+    public PeriodicOutputThread(long periodicInterval, long numResets)
     {
       this.periodicInterval = periodicInterval;
+      this.numResets = numResets;
     }
 
     /**
@@ -221,9 +223,19 @@ public class ProfilerDataCollector
       {
         while (true)
         {
-          Thread.sleep(periodicInterval);
+          Thread.sleep(periodicInterval);          
           StringBuilder str = new StringBuilder("Reason for output: Periodic output\n");
           ProfilerDataCollector.outputData(str);
+                    
+          if (numResets != 0)
+          {
+            Profiler.resetData();
+          }
+          
+          if (numResets > 0)
+          {
+            numResets--;
+          }
         }
       }
       catch (InterruptedException e)
@@ -242,7 +254,9 @@ public class ProfilerDataCollector
                                     String[] excludePrefixes, 
                                     long gcInterval, 
                                     long periodicInterval,
-                                    String path)
+                                    long numResets, 
+                                    String path, 
+                                    String allArgs)
   {
     if (path == null)
     {
@@ -255,6 +269,7 @@ public class ProfilerDataCollector
                             new OutputStreamWriter(
                               new FileOutputStream(path + "./inmemprofiler.log", true)));
       FileOutput.writeOutput("## InMemProfiler Log Initialized");
+      FileOutput.writeOutput("## InMemProfiler : Args : " + allArgs);
     }
     catch (FileNotFoundException ex)
     {
@@ -278,7 +293,7 @@ public class ProfilerDataCollector
     }
     if (periodicInterval > -1)
     {
-      PeriodicOutputThread poTh = new PeriodicOutputThread(periodicInterval);
+      PeriodicOutputThread poTh = new PeriodicOutputThread(periodicInterval, numResets);
       poTh.start();
       workThreads[1] = poTh.th;
     }

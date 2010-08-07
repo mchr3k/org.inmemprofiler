@@ -15,7 +15,7 @@ public class Test
   {
     // Example args: 
     // -Xbootclasspath/p:./inmemprofiler-runtime.jar 
-    // -agentpath:./objectSizer.dll=[bucket-5,15,25,35,45,55[gc-1
+    // -agentpath:./objectSizer.dll=#bucket-5,15,25,35,45,55#gc-1#include-other,test,[Ljava.lang.Object,java.util
     
     // Allocate 5 objects
     List<TestObject> round1 = allocateObjects(5);
