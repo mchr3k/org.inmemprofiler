@@ -15,7 +15,7 @@ public class Test
    */
   public static void main(String[] args) throws Exception
   {
-    Profiler.beginProfiling("[bucket-5,15,25,35,45,55[classes-other,java.util[excludeclasses-java.util.LinkedList$ListItr[gc-1[foo");
+    Profiler.beginProfiling("[bucket-5,15,25,35,45,55[gc-1");
     
     // Allocate 5 objects
     List<TestObject> round1 = allocateObjects(5);

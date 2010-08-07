@@ -29,8 +29,10 @@
   </target>
 
 
+  <target name="build" description="Comile Java and C" depends="build-Java, build-C">
+  </target>
 
-  <target name="build" description="Comile classes">
+  <target name="build-Java" description="Comile Java classes">
     <mkdir dir="./build" />
     <mkdir dir="./build/classes" />
 
@@ -47,7 +49,7 @@
   <!--======================================================================-->
   <!-- Build-C                                                              -->
   <!--======================================================================-->
-  <target name="build-C" description="Compile code and create dll">
+  <target name="build-C" description="Compile C code">
     <echo>Dependencies:</echo>
     <echo>- MinGW Installed and bin folder in PATH</echo>
     <echo>- JDK 1.5+ Bin folder in PATH</echo>
@@ -62,10 +64,22 @@
           <arg line="-I'${env.JAVA_HOME}/include'
                      -I'${env.JAVA_HOME}/include/win32'
                      -I'${env.JAVA_HOME}/include/linux'
+                     -c agent_util.c -o agent_util.o"/>
+        </exec>
+        <exec dir="jvmti" executable="gcc">
+          <arg line="-I'${env.JAVA_HOME}/include'
+                     -I'${env.JAVA_HOME}/include/win32'
+                     -I'${env.JAVA_HOME}/include/linux'
+                     -c java_crw_demo.c -o java_crw_demo.o"/>
+        </exec>
+		<exec dir="jvmti" executable="gcc">
+          <arg line="-I'${env.JAVA_HOME}/include'
+                     -I'${env.JAVA_HOME}/include/win32'
+                     -I'${env.JAVA_HOME}/include/linux'
                      -c objectSizer.c -o objectSizer.o"/>
         </exec>
         <exec dir="jvmti" executable="gcc">
-          <arg line="-shared -Wl,--enable-stdcall-fixup -o objectSizer.dll objectSizer.o objectSizer.def"></arg>
+          <arg line="-shared -Wl,--enable-stdcall-fixup -o objectSizer.dll objectSizer.o java_crw_demo.o agent_util.o objectSizer.def"></arg>
         </exec>
       </then>
       <else>
@@ -82,28 +96,6 @@
       </else>
     </if>
   </target>
-  
-  
-
-  <target name="jar-compiler" description="Create Jars" depends="build">
-
-    <mkdir dir="./build/jars/" />
-
-    <!-- Profiler Compiler -->
-    <jarjar jarfile="./build/jars/inmemprofiler-compiler.jar" compress="false">
-      <manifest>
-        <attribute name="Premain-Class" value="org.inmemprofiler.compiler.Agent" />
-        <attribute name="Agent-Class" value="org.inmemprofiler.compiler.Agent" />
-        <attribute name="Can-Redefine-Classes" value="true" />
-      </manifest>
-      <fileset dir="./build/classes" includes="**/compiler/**/*.class" />
-      <zipfileset src="./lib/asm-debug-all-3.3.jar" />
-      <rule pattern="org.objectweb.asm.**" result="org.inmemprofiler.compiler.internal.objectweb.asm.@1" />
-    </jarjar>
-
-  </target>
-
-  
   
   <target name="getgitdetails" >
     <exec executable="git" outputproperty="git.tagstring">
@@ -126,16 +118,10 @@
   
   
   
-  <target name="jar-runtime" description="Create Jars" depends="jar-compiler, getgitdetails">
+  <target name="jar-runtime" description="Create Jars" depends="build, getgitdetails">
 
-    <!-- Generate modified Object class -->
-    <java classname="org.inmemprofiler.compiler.InstrumentJavaLangObject" fork="true">
-      <jvmarg value="-javaagent:./build/jars/inmemprofiler-compiler.jar" />
-      <classpath>
-        <pathelement location="./build/jars/inmemprofiler-compiler.jar" />
-      </classpath>
-    </java>
-
+    <mkdir dir="./build/jars/" />
+  
     <!-- Profiler Runtime -->
     <jar jarfile="./build/jars/inmemprofiler-runtime.jar" compress="false">
       <manifest>
@@ -145,7 +131,6 @@
         <attribute name="Implementation-Version" value="${git.tag}" />        
       </manifest>
       <fileset dir="./build/classes" includes="**/runtime/**/*.class" />
-      <fileset dir="./build/genclasses" includes="**/*.class" />
     </jar>
 
   </target>
@@ -154,6 +139,7 @@
 
   <target name="deploy" description="Deploy to test project" depends="jar-runtime">
     <copy file="./build/jars/inmemprofiler-runtime.jar" todir="../Test/" />
+	<copy file="./jvmti/objectSizer.dll" todir="../Test/" />
   </target>
 
 </project>
