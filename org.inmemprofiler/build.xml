@@ -130,7 +130,7 @@
     <mkdir dir="./build/binaries/" />
 
     <!-- Profiler Runtime -->
-    <jar jarfile="./build/binaries/inmemprofiler-runtime.jar" compress="false">
+    <jar jarfile="./build/binaries/inmemprofiler.jar" compress="false">
       <manifest>
         <attribute name="Premain-Class" value="org.inmemprofiler.runtime.Agent" />
         <attribute name="Can-Redefine-Classes" value="false" />
@@ -158,7 +158,7 @@
 
 
   <target name="deploy" description="Deploy to test project" depends="binaries">
-    <copy file="./build/binaries/inmemprofiler-runtime.jar" todir="../Test/" />    
+    <copy file="./build/binaries/inmemprofiler.jar" todir="../Test/" />    
     <if>
       <equals arg1="${os.type}" arg2="win" />
       <then>
