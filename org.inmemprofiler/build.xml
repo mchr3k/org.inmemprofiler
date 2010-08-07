@@ -117,12 +117,12 @@
   
   
   
-  <target name="jar-runtime" description="Create Jars" depends="build, getgitdetails">
+  <target name="binaries" description="Create Binaries (Jar + JVMTI Agent)" depends="build, getgitdetails">
 
-    <mkdir dir="./build/jars/" />
+    <mkdir dir="./build/binaries/" />
   
     <!-- Profiler Runtime -->
-    <jar jarfile="./build/jars/inmemprofiler-runtime.jar" compress="false">
+    <jar jarfile="./build/binaries/inmemprofiler-runtime.jar" compress="false">
       <manifest>
         <attribute name="Premain-Class" value="org.inmemprofiler.runtime.Agent" />
         <attribute name="Can-Redefine-Classes" value="false" />
@@ -131,12 +131,25 @@
       </manifest>
       <fileset dir="./build/classes" includes="**/runtime/**/*.class" />
     </jar>
+	
+	<!-- JVM TI Agent -->
+    <if>
+      <equals arg1="${os.type}" arg2="win"/>
+      <then>
+        <echo>Windows build</echo>	
+	    <copy file="./jvmti/objectSizer.dll" todir="./build/binaries/" />
+	  </then>
+	  <else>
+        <echo>Linux build</echo>	
+	    <copy file="./jvmti/libobjectSizer.so" todir="./build/binaries/" />
+      </else>
+    </if>	  
 
   </target>
   
   
 
-  <target name="deploy" description="Deploy to test project" depends="jar-runtime">
+  <target name="deploy" description="Deploy to test project" depends="binaries">
     <copy file="./build/jars/inmemprofiler-runtime.jar" todir="../Test/" />
 	<copy file="./jvmti/objectSizer.dll" todir="../Test/" />
   </target>

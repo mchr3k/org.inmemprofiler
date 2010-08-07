@@ -25,7 +25,7 @@ public class ProfilerDataCollector
   private static final Map<LifetimeWeakReference, Object> weakRefSet = new ConcurrentHashMap<LifetimeWeakReference, Object>();
   private static final Object setValue = new Object();
 
-  // Q for recording collection times
+  // Reference Q used for recording collection times
   private static final ReferenceQueue<Object> objectCollectedQueue = new ReferenceQueue<Object>();
 
   public static void profileNewObject(Object ref)
@@ -112,6 +112,7 @@ public class ProfilerDataCollector
       th = new Thread(this);
       th.setDaemon(true);
       th.setName("InMemProfiler-DataCollector");
+      th.setPriority(Thread.MAX_PRIORITY);
       th.start();
     }
 

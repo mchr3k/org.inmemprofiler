@@ -8,6 +8,7 @@
 
 #include "objectSizer.h"
 
+#define PROFILER_CONTROL_class   org/inmemprofiler/runtime/Profiler       /* Name of control class */
 #define PROFILER_class           org/inmemprofiler/runtime/ObjectProfiler /* Name of class we are using */
 #define PROFILER_newobj          newObject      /* Name of java init method */
 
@@ -19,8 +20,12 @@
 typedef struct {
     /* JVMTI Environment */
     jvmtiEnv      *jvmti;
+	
     /* State of the VM flags */
     jboolean       vmStarted;	
+	
+	/* Startup options */
+	char*          options;
 } GlobalAgentData;
 
 static GlobalAgentData *gdata;
@@ -29,11 +34,41 @@ static GlobalAgentData *gdata;
 static void JNICALL
 cbVMStart(jvmtiEnv *jvmti, JNIEnv *env)
 {    
-    /* TODO: Call startProfiling */
-	
 	/* Indicate VM has started */
 	gdata->vmStarted = JNI_TRUE;    
 }
+
+/* Callback for JVMTI_EVENT_VM_INIT */
+static void JNICALL
+cbVMInit(jvmtiEnv *jvmti, JNIEnv *env, jthread thread)
+{    
+	/* Begin Profiling */
+	jclass cls = (*env)->FindClass(env, STRING(PROFILER_CONTROL_class));
+	if (cls == NULL)
+	{
+	  fatal_error("Failed to find Profiler control class\n");
+	}
+	
+	jmethodID mid = (*env)->GetStaticMethodID(env, cls, "beginProfiling", "(Ljava/lang/String;)V");
+	if (mid == NULL)
+	{
+	  fatal_error("Failed to find Profiler control beginProfiling method\n");
+	}
+	
+	jstring joptions = NULL;
+	char* options = gdata->options;	
+	if (options != NULL)
+	{
+		joptions = (*env)->NewStringUTF(env, options);
+		if (joptions == NULL)
+		{
+		  fatal_error("Failed to find Profiler control beginProfiling method\n");
+		}
+	}
+	
+	(*env)->CallStaticVoidMethod(env, cls, mid, joptions);
+}
+
 /* Callback for JVMTI_EVENT_CLASS_FILE_LOAD_HOOK */
 static void JNICALL
 cbClassFileLoadHook(jvmtiEnv *jvmti, JNIEnv* env,
@@ -172,6 +207,8 @@ Agent_OnLoad(JavaVM *vm, char *options, void *reserved)
     (void)memset(&callbacks,0, sizeof(callbacks));
     /* JVMTI_EVENT_VM_START */
     callbacks.VMStart           = &cbVMStart;       
+    /* JVMTI_EVENT_VM_INIT */
+    callbacks.VMInit            = &cbVMInit;      	
     /* JVMTI_EVENT_CLASS_FILE_LOAD_HOOK */
     callbacks.ClassFileLoadHook = &cbClassFileLoadHook; 
     error = (*jvmti)->SetEventCallbacks(jvmti, &callbacks, (jint)sizeof(callbacks));
@@ -185,9 +222,28 @@ Agent_OnLoad(JavaVM *vm, char *options, void *reserved)
                           JVMTI_EVENT_VM_START, (jthread)NULL);
     check_jvmti_error(jvmti, error, "Cannot set event notification");
     error = (*jvmti)->SetEventNotificationMode(jvmti, JVMTI_ENABLE, 
+                          JVMTI_EVENT_VM_INIT, (jthread)NULL);
+    check_jvmti_error(jvmti, error, "Cannot set event notification");	
+    error = (*jvmti)->SetEventNotificationMode(jvmti, JVMTI_ENABLE, 
                           JVMTI_EVENT_CLASS_FILE_LOAD_HOOK, (jthread)NULL);
     check_jvmti_error(jvmti, error, "Cannot set event notification");
    
+    /* Save off options for later */
+	if (options == NULL)
+	{
+	  gdata->options = NULL;
+	}
+	else
+	{
+	  int optionsLen = strlen(options);
+	  char* storedOptions = malloc(optionsLen);
+	  if (storedOptions == NULL)
+	  {
+	    fatal_error("Failed to save options\n");
+	  }
+	  strcpy(storedOptions, options);
+	  gdata->options = storedOptions;
+	}
 	
     /* We return JNI_OK to signify success */
     return JNI_OK;

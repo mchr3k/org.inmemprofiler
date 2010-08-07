@@ -80,17 +80,19 @@ public class InstanceBucket
     });
     
     long totalInstances = 0;
+    long totalSize = 0;
     StringBuilder str = new StringBuilder("size:count\n");
     for (Entry<String, ClassStats> instanceEntry : list)
     {
       ClassStats classStats = instanceEntry.getValue();
       totalInstances += classStats.count.get();
+      totalSize += classStats.size.get();
       str.append(classStats);
       str.append("\t: ");
       str.append(instanceEntry.getKey());
       str.append("\n");
     }
-    return new InstanceBucketData(str.toString(), totalInstances);
+    return new InstanceBucketData(str.toString(), totalInstances, totalSize);
   }
   
   @Override
@@ -103,11 +105,13 @@ public class InstanceBucket
   {
     public final String str;
     public final long totalCount;
+    public final long totalSize;
     
-    public InstanceBucketData(String str, long totalCount)
+    public InstanceBucketData(String str, long totalCount, long totalSize)
     {
       this.str = str;
       this.totalCount = totalCount;
+      this.totalSize = totalSize;
     }
   }
 

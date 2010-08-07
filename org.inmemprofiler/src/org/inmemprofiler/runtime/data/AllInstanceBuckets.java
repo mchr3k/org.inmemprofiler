@@ -79,6 +79,8 @@ public class AllInstanceBuckets
       InstanceBucketData dataSnap = snaps[ii];
       if (dataSnap.totalCount > 0)
       {
+        str.append(dataSnap.totalSize);
+        str.append(":");
         str.append(dataSnap.totalCount);
         str.append("\t: " + lastLong + "(s) - " + printLong(bucketInterval) + "(s)");        
         str.append("\n");
@@ -86,6 +88,8 @@ public class AllInstanceBuckets
       lastLong = bucketInterval;
       ii++;
     }
+    str.append(liveSnap.totalSize);
+    str.append(":");
     str.append(liveSnap.totalCount + "\t: live instances\n");    
     str.append("\n");
     
