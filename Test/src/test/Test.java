@@ -25,9 +25,6 @@ public class Test
     List<TestObject> round2 = allocateObjects(5);
     Thread.sleep(10 * 1000);
     
-    Profiler.outputData();
-    Profiler.resetData();
-    
     // Allocate 5 objects
     List<TestObject> round3 = allocateObjects(5);
     Thread.sleep(10 * 1000);

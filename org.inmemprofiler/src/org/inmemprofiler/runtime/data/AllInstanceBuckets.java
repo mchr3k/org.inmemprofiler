@@ -25,17 +25,17 @@ public class AllInstanceBuckets
     }
   }
     
-  public void addLiveInstance(String className)
+  public void addLiveInstance(String className, long instanceSize)
   {
-    liveInstanceBucket.addInstance(className);
+    liveInstanceBucket.addInstance(className, instanceSize);
   }
   
-  public void addCollectedInstance(String className, long instanceLifetime)
+  public void addCollectedInstance(String className, long instanceSize, long instanceLifetime)
   {
-    liveInstanceBucket.removeInstance(className);
+    liveInstanceBucket.removeInstance(className, instanceSize);
     long bucketIndex = getBucketIndex(instanceLifetime);
     InstanceBucket bucket = collectedInstanceBuckets.get(bucketIndex);
-    bucket.addInstance(className);
+    bucket.addInstance(className, instanceSize);
   }
 
   private long getBucketIndex(long instanceLifetime)

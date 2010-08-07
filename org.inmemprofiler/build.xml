@@ -54,7 +54,6 @@
     <echo>- MinGW Installed and bin folder in PATH</echo>
     <echo>- JDK 1.5+ Bin folder in PATH</echo>
     <property environment="env"/>
-    <mkdir dir="${build.native.dir}"/>
 
     <if>
       <equals arg1="${os.type}" arg2="win"/>
