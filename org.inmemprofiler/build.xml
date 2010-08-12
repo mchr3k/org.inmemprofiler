@@ -24,12 +24,12 @@
 
 
 
-  <target name="clean" description="Comile classes">
+  <target name="clean" description="Compile classes">
     <delete dir="./build" />
   </target>
 
 
-  <target name="build" description="Comile Java and C" depends="build-Java, build-C">
+  <target name="build" description="Compile Java and C" depends="build-Java, build-C">
   </target>
 
   <target name="build-Java" description="Comile Java classes">
@@ -95,7 +95,7 @@
           <arg line="-I'${env.JAVA_HOME}/include'
                      -I'${env.JAVA_HOME}/include/linux'
                      -c objectSizer.c -o objectSizer.o" />
-        </exec>        
+        </exec>
         <exec dir="jvmti" executable="gcc">
           <arg line="-shared -o libinmemprofiler.so objectSizer.o java_crw_demo.o agent_util.o">
           </arg>
@@ -158,7 +158,7 @@
 
 
   <target name="deploy" description="Deploy to test project" depends="binaries">
-    <copy file="./build/binaries/inmemprofiler.jar" todir="../Test/" />    
+    <copy file="./build/binaries/inmemprofiler.jar" todir="../Test/" />
     <if>
       <equals arg1="${os.type}" arg2="win" />
       <then>
@@ -169,7 +169,7 @@
         <echo>Linux build</echo>
         <copy file="./build/binaries/libinmemprofiler.so" todir="../Test/" />
       </else>
-    </if>    
+    </if>
   </target>
 
 </project>
