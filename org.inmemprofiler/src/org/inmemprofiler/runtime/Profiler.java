@@ -19,9 +19,10 @@ public class Profiler
       long[] buckets = null;
       String[] prefixes = null;
       String[] excludePrefixes = null;
+      boolean exactmatch = false;
       long gcInterval = -1;
       long periodicInterval = -1;
-      long numResets = 0;
+      long numResets = 0;      
       String path = null;
       
       if ((allArgs != null) && (allArgs.indexOf('#') > -1))
@@ -132,6 +133,10 @@ public class Profiler
               path = arg;
             }
           }
+          else if (arg.equals("exactmatch"))
+          {
+            exactmatch = true;
+          }          
           else if (arg.length() > 0)
           {
             System.out.println("## InMemProfiler: Unrecognised argument: " + arg);
@@ -143,6 +148,7 @@ public class Profiler
       ProfilerDataCollector.beginProfiling(buckets, 
                                            prefixes,
                                            excludePrefixes,
+                                           exactmatch,
                                            gcInterval, 
                                            periodicInterval,
                                            numResets,

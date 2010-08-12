@@ -38,12 +38,26 @@ public class ProfilerDataCollector
     if (classPrefixes != null)
     {
       earlyReturn = true;
-      for (String classPrefix : classPrefixes)
+      if (exactMatch)
       {
-        if (className.startsWith(classPrefix))
+        for (String classPrefix : classPrefixes)
         {
-          earlyReturn = false;
-          break;
+          if (className.equals(classPrefix))
+          {
+            earlyReturn = false;
+            break;
+          }
+        }
+      }
+      else
+      {
+        for (String classPrefix : classPrefixes)
+        {
+          if (className.startsWith(classPrefix))
+          {
+            earlyReturn = false;
+            break;
+          }
         }
       }
     }
@@ -248,10 +262,12 @@ public class ProfilerDataCollector
   // Profiling control code
   private static String[] classPrefixes;
   private static String[] excludeClassPrefixes;
+  private static boolean exactMatch;
 
   public static void beginProfiling(long[] buckets,
                                     String[] allowedPrefixes, 
                                     String[] excludePrefixes, 
+                                    boolean exactmatch, 
                                     long gcInterval, 
                                     long periodicInterval,
                                     long numResets, 
@@ -283,6 +299,7 @@ public class ProfilerDataCollector
     bucketInstances = new AllInstanceBuckets(buckets);
     classPrefixes = allowedPrefixes;
     excludeClassPrefixes = excludePrefixes;
+    exactMatch = exactmatch;
 
     Thread[] workThreads = new Thread[4];
     if (gcInterval > -1)

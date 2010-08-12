@@ -2,6 +2,7 @@ package org.inmemprofiler.runtime.data;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class InstanceBucket
 {
-  private static class ClassStats
+  static class ClassStats
   {
     public final AtomicLong count = new AtomicLong();
     public final AtomicLong size = new AtomicLong();
@@ -23,6 +24,14 @@ public class InstanceBucket
     public String toString()
     {
       return size + ":" + count;
+    }
+
+    public ClassStats duplicate()
+    {
+      ClassStats copy = new ClassStats();
+      copy.count.set(count.get());
+      copy.size.set(size.get());
+      return copy;
     }
   }
   
@@ -65,7 +74,7 @@ public class InstanceBucket
     }    
   }
   
-  public InstanceBucketData getSnapshot()
+  public BucketSnapshot getSnapshot()
   {
     List<Entry<String, ClassStats>> list = new LinkedList<Entry<String, ClassStats>>(allClassStats.entrySet());
     Collections.sort(list, new Comparator<Entry<String, ClassStats>>() {
@@ -79,12 +88,14 @@ public class InstanceBucket
         }
     });
     
-    long totalInstances = 0;
+    Map<String, ClassStats> instanceSnapShot = new HashMap<String, ClassStats>();
+    long totalInstances = 0;    
     long totalSize = 0;
     StringBuilder str = new StringBuilder("size:count\n");
     for (Entry<String, ClassStats> instanceEntry : list)
-    {
+    {      
       ClassStats classStats = instanceEntry.getValue();
+      instanceSnapShot.put(instanceEntry.getKey(), classStats.duplicate());
       totalInstances += classStats.count.get();
       totalSize += classStats.size.get();
       str.append(classStats);
@@ -92,7 +103,7 @@ public class InstanceBucket
       str.append(instanceEntry.getKey());
       str.append("\n");
     }
-    return new InstanceBucketData(str.toString(), totalInstances, totalSize);
+    return new BucketSnapshot(str.toString(), totalInstances, totalSize, instanceSnapShot);
   }
   
   @Override
@@ -101,17 +112,22 @@ public class InstanceBucket
     return getSnapshot().str;
   }
   
-  public static class InstanceBucketData
+  public static class BucketSnapshot
   {
     public final String str;
     public final long totalCount;
     public final long totalSize;
+    public final Map<String, ClassStats> instanceData;
     
-    public InstanceBucketData(String str, long totalCount, long totalSize)
+    public BucketSnapshot(String str, 
+                          long totalCount, 
+                          long totalSize,
+                          Map<String, ClassStats> instanceData)
     {
       this.str = str;
       this.totalCount = totalCount;
       this.totalSize = totalSize;
+      this.instanceData = instanceData;
     }
   }
 

@@ -235,14 +235,15 @@ Agent_OnLoad(JavaVM *vm, char *options, void *reserved)
 	}
 	else
 	{
-	  int optionsLen = strlen(options);
+	  int optionsLen = strlen(options) + 1;
 	  if (optionsLen == 0)
 	  {
 	    gdata->options = NULL;
 	  }
 	  else
 	  {
-	    char* storedOptions = malloc(optionsLen);
+	    char* storedOptions = malloc(optionsLen * sizeof(char));
+	    storedOptions[optionsLen - 1] = '\0';
 	    if (storedOptions == NULL)
 	    {
   	      fatal_error("Failed to save options\n");
