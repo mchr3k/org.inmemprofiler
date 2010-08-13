@@ -71,12 +71,26 @@ public class ProfilerDataCollector
     if (excludeClassPrefixes != null)
     {
       earlyReturn = false;
-      for (String classPrefix : excludeClassPrefixes)
+      if (exactMatch)
       {
-        if (className.startsWith(classPrefix))
+        for (String classPrefix : excludeClassPrefixes)
         {
-          earlyReturn = true;
-          break;
+          if (className.equals(classPrefix))
+          {
+            earlyReturn = true;
+            break;
+          }
+        }        
+      }
+      else
+      {
+        for (String classPrefix : excludeClassPrefixes)
+        {
+          if (className.startsWith(classPrefix))
+          {
+            earlyReturn = true;
+            break;
+          }
         }
       }
     }
