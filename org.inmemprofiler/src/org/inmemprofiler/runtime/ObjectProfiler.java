@@ -8,7 +8,7 @@ public class ObjectProfiler
 {
   public static Thread[] ignoreThreads = null;
   public static boolean profilingEnabled = false;
-  private static final PlaceholderHandler gHandler = new PlaceholderHandler();
+  public static final PlaceholderHandler CRITICAL_BLOCK = new PlaceholderHandler();
    
   /**
    * This method calls through to {@link ProfilerDataCollector} to record object allocation.
@@ -32,12 +32,12 @@ public class ObjectProfiler
     {
       Thread currentThread = Thread.currentThread();
       UncaughtExceptionHandler prevVal = currentThread.getUncaughtExceptionHandler();
-      if ((prevVal != gHandler) &&
+      if ((prevVal != CRITICAL_BLOCK) &&
            profileThread(currentThread))
       {
         try
         {
-          currentThread.setUncaughtExceptionHandler(gHandler);
+          currentThread.setUncaughtExceptionHandler(CRITICAL_BLOCK);
           
           ProfilerDataCollector.profileNewObject(ref);
         }

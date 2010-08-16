@@ -1,5 +1,6 @@
 package org.inmemprofiler.runtime;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Date;
 
 /**
@@ -160,13 +161,31 @@ public class Profiler
   }
   
   public static void resetData()
-  {
-    System.out.println(new Date().toString() + " ## Reset InMemProfiler Data");
-    ProfilerDataCollector.resetData();
+  {  
+    UncaughtExceptionHandler handler = Thread.currentThread().getUncaughtExceptionHandler();
+    try
+    { 
+      Thread.currentThread().setUncaughtExceptionHandler(ObjectProfiler.CRITICAL_BLOCK);
+      System.out.println(new Date().toString() + " ## Reset InMemProfiler Data");
+      ProfilerDataCollector.resetData();
+    }
+    finally
+    {
+      Thread.currentThread().setUncaughtExceptionHandler(handler);
+    }
   }
   
   public static void outputData()
   {
-    ProfilerDataCollector.outputData(new StringBuilder("Reason for output: API request\n"));
+    UncaughtExceptionHandler handler = Thread.currentThread().getUncaughtExceptionHandler();
+    try
+    { 
+      Thread.currentThread().setUncaughtExceptionHandler(ObjectProfiler.CRITICAL_BLOCK);
+      ProfilerDataCollector.outputData(new StringBuilder("Reason for output: API request\n"));
+    }
+    finally
+    {
+      Thread.currentThread().setUncaughtExceptionHandler(handler);
+    }
   }
 }
