@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.inmemprofiler.runtime.data.AllInstanceBuckets;
+import org.inmemprofiler.runtime.data.AllocationSites;
 import org.inmemprofiler.runtime.data.FileOutput;
 import org.inmemprofiler.runtime.data.LifetimeWeakReference;
 
@@ -20,6 +21,7 @@ public class ProfilerDataCollector
 
   // Recorded data
   private static AllInstanceBuckets bucketInstances;
+  private static AllocationSites allocationSites = new AllocationSites();
 
   // Maps for holding class names and creation times
   private static final Map<LifetimeWeakReference, Object> weakRefSet = new ConcurrentHashMap<LifetimeWeakReference, Object>();
@@ -102,6 +104,7 @@ public class ProfilerDataCollector
 
     long instanceSize = ObjectSizer.getObjectSize(ref);
     
+    // Lifetime buckets
     AllInstanceBuckets lBucketInstances = bucketInstances;
     lBucketInstances.addLiveInstance(className, instanceSize);
     LifetimeWeakReference key = new LifetimeWeakReference(ref, 
@@ -111,11 +114,15 @@ public class ProfilerDataCollector
                                                           instanceSize,
                                                           lBucketInstances);
     weakRefSet.put(key, setValue);
+    
+    // Instance lifetimes
+    allocationSites.addAllocationSite(className);
   }
 
   public static void outputData(StringBuilder str)
   {
     str.append(bucketInstances.toString());
+    str.append(allocationSites.toString());
     FileOutput.writeOutput(str.toString());
   }
   
