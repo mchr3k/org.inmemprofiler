@@ -1,4 +1,4 @@
-package org.inmemprofiler.runtime.data;
+package org.inmemprofiler.runtime.util;
 
 import java.io.BufferedWriter;
 import java.io.IOException;

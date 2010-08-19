@@ -1,4 +1,4 @@
-package org.inmemprofiler.runtime.data;
+package org.inmemprofiler.runtime.util;
 
 public class PlaceholderHandler implements Thread.UncaughtExceptionHandler
 {

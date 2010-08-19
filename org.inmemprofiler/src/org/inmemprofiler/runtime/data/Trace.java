@@ -1,12 +1,12 @@
 package org.inmemprofiler.runtime.data;
 
-public class ComparableStackTrace
+public class Trace
 {
   public final StackTraceElement[] stackFrames;
   private int hashCode = 0;
   private boolean computedHashcode = false;
 
-  public ComparableStackTrace(StackTraceElement[] stackFrames)
+  public Trace(StackTraceElement[] stackFrames)
   {
     this.stackFrames = stackFrames;
   }
@@ -18,9 +18,9 @@ public class ComparableStackTrace
     {
       return true;
     }
-    if (obj instanceof ComparableStackTrace)
+    if (obj instanceof Trace)
     {
-      ComparableStackTrace otherKey = (ComparableStackTrace) obj;
+      Trace otherKey = (Trace) obj;
       if (otherKey.stackFrames == stackFrames)
       {
         return true;

@@ -8,20 +8,23 @@ public class LifetimeWeakReference extends WeakReference<Object>
   public final String className;
   public final long creationTime;
   public final long size;
-  public final AllInstanceBuckets bucketInstances;
+  public final ProfilerData data;
+  public final Trace trace;
 
   public LifetimeWeakReference(Object referent, 
                                ReferenceQueue<Object> q,
                                String className,
                                long creationTime, 
                                long size,
-                               AllInstanceBuckets bucketInstances)
+                               Trace trace,
+                               ProfilerData data)
   {
     super(referent, q);
     this.className = className;
     this.creationTime = creationTime;
     this.size = size;
-    this.bucketInstances = bucketInstances;
+    this.trace = trace;
+    this.data = data;
   }
 
 }

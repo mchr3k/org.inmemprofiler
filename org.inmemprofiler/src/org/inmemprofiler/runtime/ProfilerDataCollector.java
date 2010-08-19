@@ -8,10 +8,12 @@ import java.lang.ref.ReferenceQueue;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.inmemprofiler.runtime.data.AllInstanceBuckets;
-import org.inmemprofiler.runtime.data.AllocationSites;
-import org.inmemprofiler.runtime.data.FileOutput;
+import org.inmemprofiler.runtime.data.BucketContainer;
+import org.inmemprofiler.runtime.data.xxAllocationSites;
 import org.inmemprofiler.runtime.data.LifetimeWeakReference;
+import org.inmemprofiler.runtime.data.ProfilerData;
+import org.inmemprofiler.runtime.data.Trace;
+import org.inmemprofiler.runtime.util.FileOutput;
 
 public class ProfilerDataCollector
 {
@@ -20,8 +22,7 @@ public class ProfilerDataCollector
   { 5, 30, 60, 5 * 60, 30 * 60, Long.MAX_VALUE };
 
   // Recorded data
-  private static AllInstanceBuckets bucketInstances;
-  private static AllocationSites allocationSites = new AllocationSites();
+  private static ProfilerData data;
 
   // Maps for holding class names and creation times
   private static final Map<LifetimeWeakReference, Object> weakRefSet = new ConcurrentHashMap<LifetimeWeakReference, Object>();
@@ -102,33 +103,44 @@ public class ProfilerDataCollector
       return;
     }
 
-    long instanceSize = ObjectSizer.getObjectSize(ref);
+    long size = ObjectSizer.getObjectSize(ref);
+    Trace trace = getTrace();
     
     // Lifetime buckets
-    AllInstanceBuckets lBucketInstances = bucketInstances;
-    lBucketInstances.addLiveInstance(className, instanceSize);
+    ProfilerData lData = data;
+    lData.newObject(className, size, trace);
     LifetimeWeakReference key = new LifetimeWeakReference(ref, 
                                                           objectCollectedQueue, 
                                                           className, 
                                                           System.currentTimeMillis(),
-                                                          instanceSize,
-                                                          lBucketInstances);
+                                                          size,
+                                                          trace,
+                                                          lData);
     weakRefSet.put(key, setValue);
-    
-    // Instance lifetimes
-    allocationSites.addAllocationSite(className);
+  }  
+
+  private static Trace getTrace()
+  {
+    Exception ex = new Exception();
+    StackTraceElement[] stackTrace = ex.getStackTrace();
+    StackTraceElement[] fixedTrace = new StackTraceElement[stackTrace.length - 2];
+    for (int ii = 2; ii < stackTrace.length; ii++)
+    {
+      fixedTrace[ii-2] = stackTrace[ii];
+    }
+    Trace trace = new Trace(fixedTrace);
+    return trace;
   }
 
   public static void outputData(StringBuilder str)
   {
-    str.append(bucketInstances.toString());
-    str.append(allocationSites.toString());
+    str.append(data.toString());
     FileOutput.writeOutput(str.toString());
   }
   
   static void resetData()
   {
-    bucketInstances = new AllInstanceBuckets(bucketInstances.bucketIntervals);
+    data = new ProfilerData(data.bucketIntervals);
     FileOutput.writeOutput("Instance data reset\n");
   }
 
@@ -161,16 +173,16 @@ public class ProfilerDataCollector
           LifetimeWeakReference ref = (LifetimeWeakReference)objectCollectedQueue.remove();
           
           String className = ref.className;        
-          long instanceSize = ref.size;
+          long size = ref.size;
+          Trace trace = ref.trace;
           long instanceCreationTime = ref.creationTime;
           
           long instanceCollectionTime = System.currentTimeMillis();
           long instanceLifeTime = instanceCollectionTime
               - instanceCreationTime;
 
-          ref.bucketInstances.addCollectedInstance(className, 
-                                                   instanceSize,
-                                                   instanceLifeTime / 1000);
+          ref.data.collectObject(className, size, trace,
+                                 instanceLifeTime / 1000);
         }
       }
       catch (InterruptedException e)
@@ -317,7 +329,7 @@ public class ProfilerDataCollector
     {
       buckets = defaultBuckets;
     }
-    bucketInstances = new AllInstanceBuckets(buckets);
+    data = new ProfilerData(buckets);
     classPrefixes = allowedPrefixes;
     excludeClassPrefixes = excludePrefixes;
     exactMatch = exactmatch;

@@ -2,7 +2,8 @@ package org.inmemprofiler.runtime;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 
-import org.inmemprofiler.runtime.data.PlaceholderHandler;
+import org.inmemprofiler.runtime.util.PlaceholderHandler;
+
 
 public class ObjectProfiler
 {
