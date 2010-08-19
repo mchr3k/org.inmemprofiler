@@ -18,7 +18,7 @@ public class ProfilerData
                         long size, 
                         Trace trace)
   {
-    
+    liveObjects.addObject(className, size, trace);    
   }
   
   /**
@@ -34,12 +34,17 @@ public class ProfilerData
                                          Trace trace, 
                                          long lifetime)
   {
-    
+    liveObjects.removeObject(className, size, trace);
+    collectedObjects.collectObject(className, size, trace, lifetime);
   }
   
   public synchronized void outputData(StringBuilder str,
                                       Formatter fmt)
   {
-  
+    str.append("Live objects:\n");
+    liveObjects.outputData(str, fmt, 1);
+    str.append("\n");
+    str.append("Collected objects:\n");
+    collectedObjects.outputData(str, fmt, 1);
   }
 }

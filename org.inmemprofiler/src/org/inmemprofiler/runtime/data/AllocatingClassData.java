@@ -11,11 +11,11 @@ public class AllocatingClassData
   public final AtomicLong size = new AtomicLong();
   private final Map<String, AllocatingMethodData> methods = new ConcurrentHashMap<String, AllocatingMethodData>();
   
-  public void addObject(String className, long size, Trace trace)
+  public void addMethod(String className, long size, String method)
   { 
   }
   
-  public void removeObject(String className, long size, Trace trace)
+  public void removeMethod(String className, long size, String method)
   {
   }
   

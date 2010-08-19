@@ -8,8 +8,6 @@ import java.lang.ref.ReferenceQueue;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.inmemprofiler.runtime.data.BucketContainer;
-import org.inmemprofiler.runtime.data.xxAllocationSites;
 import org.inmemprofiler.runtime.data.LifetimeWeakReference;
 import org.inmemprofiler.runtime.data.ProfilerData;
 import org.inmemprofiler.runtime.data.Trace;

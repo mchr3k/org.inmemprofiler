@@ -4,6 +4,8 @@ import java.util.Formatter;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.inmemprofiler.runtime.util.Util;
+
 /**
  * Instance counts split out into one or more instance lifetime buckets and a single live instance bucket.
  * Each instance is placed in the live instances bucket at allocation time and is moved to one of the
@@ -46,43 +48,26 @@ public class BucketContainer
   }
   
   public void outputData(StringBuilder str,
-                         Formatter fmt)
+                         Formatter fmt,
+                         int indent)
   {   
-    // TODO: Collect bucket summaries
-//    str.append("\nBucket Summary:\n");
-    
-//    long lastLong = 0;
-//    ii = 0;
-//    for (long bucketInterval : bucketIntervals)
-//    {
-//      BucketSnapshot dataSnap = snaps[ii];
-//      if (dataSnap.totalCount > 0)
-//      {
-//        str.append(dataSnap.totalSize);
-//        str.append(":");
-//        str.append(dataSnap.totalCount);
-//        str.append("\t: " + lastLong + "(s) - " + printLong(bucketInterval) + "(s)");        
-//        str.append("\n");
-//      }
-//      lastLong = bucketInterval;
-//      ii++;
-//    }
-//    str.append(liveSnap.totalSize);
-//    str.append(":");
-//    str.append(liveSnap.totalCount + "\t: live instances\n");    
-    
-    // TODO: Sorting code
-//    List<Entry<String, ClassStats>> list = new LinkedList<Entry<String, ClassStats>>(allclassStats.entrySet());
-//    Collections.sort(list, new Comparator<Entry<String, ClassStats>>() {
-//        @Override
-//        public int compare(Entry<String, ClassStats> o1,
-//                           Entry<String, ClassStats> o2)
-//        {
-//          Long o1Val = o1.getValue().size.get();
-//          Long o2Val = o2.getValue().size.get();
-//          return -1 * o1Val.compareTo(o2Val);
-//        }
-//    });
+    long lastLong = 0;
+    for (int ii = 0; ii < bucketIntervals.length; ii++)
+    {
+      long bucketInterval = bucketIntervals[ii];
+      
+      Util.indent(str, indent);           
+      str.append("Bucket: ");
+      str.append(lastLong);
+      str.append("(s) - ");
+      str.append(printLong(bucketInterval));
+      str.append("(s) :\n");
+      
+      Bucket bucket = collectedInstanceBuckets.get(bucketInterval);
+      bucket.outputData(str, fmt, indent + 1);
+      
+      lastLong = bucketInterval;
+    }    
   }
   
   private String printLong(long val)
