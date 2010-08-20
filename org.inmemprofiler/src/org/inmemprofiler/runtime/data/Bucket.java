@@ -9,42 +9,40 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.inmemprofiler.runtime.util.Util;
-
 /**
  * A single bucket of instance counts.
  */
 public class Bucket
 {
-  private final Map<String, AllocatedClassData> allClassStats = new ConcurrentHashMap<String, AllocatedClassData>(); 
+  private final Map<String, AllocatedClassData> perClassData = new ConcurrentHashMap<String, AllocatedClassData>(); 
   
-  public void addObject(String className, long size, Trace trace)
+  public Trace addObject(String className, long size, Trace trace)
   {
-    AllocatedClassData classStats = allClassStats.get(className);
-    if (classStats == null)
+    AllocatedClassData classData = perClassData.get(className);
+    if (classData == null)
     {
-      classStats = newClass(className);
+      classData = newClass(className);
     }
-    classStats.addObject(className, size, trace);
+    return classData.addObject(className, size, trace);
   }
   
   private synchronized AllocatedClassData newClass(String className)
   {
-    AllocatedClassData classStats = allClassStats.get(className);
-    if (classStats == null)
+    AllocatedClassData classData = perClassData.get(className);
+    if (classData == null)
     {
-      classStats = new AllocatedClassData();
-      allClassStats.put(className, classStats);
+      classData = new AllocatedClassData();
+      perClassData.put(className, classData);
     }
-    return classStats;
+    return classData;
   }
   
   public void removeObject(String className, long size, Trace trace)
   {
-    AllocatedClassData classStats = allClassStats.get(className);
-    if (classStats != null)
+    AllocatedClassData classData = perClassData.get(className);
+    if (classData != null)
     {
-      classStats.removeObject(className, size, trace);
+      classData.removeObject(className, size, trace);
     }    
   }
   
@@ -53,12 +51,18 @@ public class Bucket
    * @param str
    * @param fmt
    * @param indent
+   * @param outputLimit 
+   * @param noTrace 
+   * @param traceClassFilter 
    */
   public void outputData(StringBuilder str,
                          Formatter fmt,
-                         int indent)
+                         int indent, 
+                         long outputLimit, 
+                         boolean noTrace, 
+                         String[] traceClassFilter)
   {    
-    List<Entry<String, AllocatedClassData>> sortedClassData = new LinkedList<Entry<String, AllocatedClassData>>(allClassStats.entrySet());
+    List<Entry<String, AllocatedClassData>> sortedClassData = new LinkedList<Entry<String, AllocatedClassData>>(perClassData.entrySet());
     Collections.sort(sortedClassData, new Comparator<Entry<String, AllocatedClassData>>() {
         @Override
         public int compare(Entry<String, AllocatedClassData> o1,
@@ -69,14 +73,20 @@ public class Bucket
           return -1 * o1Val.compareTo(o2Val);
         }
     });
-    
+     
+    int outputCount = 0;
     for (Entry<String, AllocatedClassData> classData : sortedClassData)
     {
-      Util.indent(str, indent);
-      str.append(classData.getKey());
-      str.append(":\n");
-      classData.getValue().outputData(str, fmt, indent + 1);
-      str.append("\n");
+      if (outputCount >= outputLimit)
+      {
+        break;
+      }
+      
+      classData.getValue().outputData(classData.getKey(), str, fmt, 
+                                      indent + 1, outputLimit, noTrace,
+                                      traceClassFilter);
+      
+      outputCount++;
     }
   }
 }

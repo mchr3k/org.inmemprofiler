@@ -5,8 +5,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.lang.ref.ReferenceQueue;
+import java.util.Formatter;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.inmemprofiler.runtime.data.LifetimeWeakReference;
 import org.inmemprofiler.runtime.data.ProfilerData;
@@ -28,6 +30,12 @@ public class ProfilerDataCollector
 
   // Reference Q used for recording collection times
   private static final ReferenceQueue<Object> objectCollectedQueue = new ReferenceQueue<Object>();
+  
+  // Limit amount of output data: -1 means no limit.
+  private static long outputLimit = -1;
+  private static long sampleEvery = 1;
+  private static AtomicLong sampleCount = new AtomicLong(0);
+  private static boolean noTrace = false;
 
   public static void profileNewObject(Object ref)
   {
@@ -95,18 +103,33 @@ public class ProfilerDataCollector
         }
       }
     }
+    
+    if (earlyReturn)
+    {
+      return;
+    }    
 
+    long sampleIndex = sampleCount.incrementAndGet();
+    if ((sampleIndex % sampleEvery) > 0)
+    {
+      earlyReturn = true;
+    }
+    
     if (earlyReturn)
     {
       return;
     }
 
     long size = ObjectSizer.getObjectSize(ref);
-    Trace trace = getTrace();
+    Trace trace = null;
+    if (!noTrace)
+    {
+      trace = getTrace(3, className);
+    }
     
     // Lifetime buckets
     ProfilerData lData = data;
-    lData.newObject(className, size, trace);
+    trace = lData.newObject(className, size, trace);
     LifetimeWeakReference key = new LifetimeWeakReference(ref, 
                                                           objectCollectedQueue, 
                                                           className, 
@@ -117,22 +140,41 @@ public class ProfilerDataCollector
     weakRefSet.put(key, setValue);
   }  
 
-  private static Trace getTrace()
+  private static Trace getTrace(int ignoreDepth, String className)
   {
     Exception ex = new Exception();
     StackTraceElement[] stackTrace = ex.getStackTrace();
-    StackTraceElement[] fixedTrace = new StackTraceElement[stackTrace.length - 2];
-    for (int ii = 2; ii < stackTrace.length; ii++)
+        
+    if (!className.startsWith("["))
     {
-      fixedTrace[ii-2] = stackTrace[ii];
+      // Non array object - count number of frames until constructor frame
+      for (int ii = ignoreDepth; ii < stackTrace.length; ii++)
+      {
+        if (className.equals(stackTrace[ii].getClassName()) &&
+            "<init>".equals(stackTrace[ii].getMethodName()))
+        {
+          ignoreDepth = ii + 1;
+          break;
+        }
+      }
     }
+    
+    StackTraceElement[] fixedTrace = new StackTraceElement[stackTrace.length - ignoreDepth];
+    for (int ii = ignoreDepth; ii < stackTrace.length; ii++)
+    {
+      fixedTrace[ii-ignoreDepth] = new StackTraceElement(stackTrace[ii].getClassName(),
+                                                         stackTrace[ii].getMethodName(),
+                                                         stackTrace[ii].getFileName(),
+                                                         -1);
+    }
+    
     Trace trace = new Trace(fixedTrace);
     return trace;
   }
 
   public static void outputData(StringBuilder str)
   {
-    str.append(data.toString());
+    data.outputData(str, new Formatter(str), outputLimit, noTrace, traceClassFilter);
     FileOutput.writeOutput(str.toString());
   }
   
@@ -293,6 +335,7 @@ public class ProfilerDataCollector
   // Profiling control code
   private static String[] classPrefixes;
   private static String[] excludeClassPrefixes;
+  private static String[] traceClassFilter;
   private static boolean exactMatch;
 
   public static void beginProfiling(long[] buckets,
@@ -301,7 +344,11 @@ public class ProfilerDataCollector
                                     boolean exactmatch, 
                                     long gcInterval, 
                                     long periodicInterval,
+                                    long outputlimit, 
+                                    long sampleevery, 
                                     long numResets, 
+                                    boolean notrace, 
+                                    String[] traceclassfilter, 
                                     String path, 
                                     String allArgs)
   {
@@ -331,6 +378,10 @@ public class ProfilerDataCollector
     classPrefixes = allowedPrefixes;
     excludeClassPrefixes = excludePrefixes;
     exactMatch = exactmatch;
+    outputLimit = outputlimit;
+    sampleEvery = sampleevery;
+    noTrace = notrace;
+    traceClassFilter = traceclassfilter;
 
     Thread[] workThreads = new Thread[4];
     if (gcInterval > -1)

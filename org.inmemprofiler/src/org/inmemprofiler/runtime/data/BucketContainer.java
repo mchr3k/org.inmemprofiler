@@ -49,22 +49,24 @@ public class BucketContainer
   
   public void outputData(StringBuilder str,
                          Formatter fmt,
-                         int indent)
+                         int indent, 
+                         long outputLimit, 
+                         boolean noTrace, 
+                         String[] traceClassFilter)
   {   
     long lastLong = 0;
     for (int ii = 0; ii < bucketIntervals.length; ii++)
     {
       long bucketInterval = bucketIntervals[ii];
       
-      Util.indent(str, indent);           
-      str.append("Bucket: ");
+      Util.indent(str, indent);
       str.append(lastLong);
       str.append("(s) - ");
       str.append(printLong(bucketInterval));
       str.append("(s) :\n");
       
       Bucket bucket = collectedInstanceBuckets.get(bucketInterval);
-      bucket.outputData(str, fmt, indent + 1);
+      bucket.outputData(str, fmt, indent + 1, outputLimit, noTrace, traceClassFilter);
       
       lastLong = bucketInterval;
     }    

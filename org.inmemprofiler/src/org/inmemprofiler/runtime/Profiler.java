@@ -20,9 +20,13 @@ public class Profiler
       long[] buckets = null;
       String[] prefixes = null;
       String[] excludePrefixes = null;
+      String[] traceClassFilter = null;
       boolean exactmatch = false;
+      boolean notrace = false;
       long gcInterval = -1;
       long periodicInterval = -1;
+      long outputLimit = -1;
+      long sampleEvery = 1;
       long numResets = 0;      
       String path = null;
       
@@ -81,6 +85,19 @@ public class Profiler
               excludePrefixes = new String[] {arg};
             }
           }
+          else if (arg.startsWith("traceclassfilter-"))
+          {
+            arg = arg.substring("traceclassfilter-".length());
+            if (arg.indexOf(",") > -1)
+            {
+              String[] prefixStrings = arg.split(",");
+              traceClassFilter = prefixStrings;
+            }
+            else
+            {
+              traceClassFilter = new String[] {arg};
+            }
+          }
           else if (arg.startsWith("gc-"))
           {
             arg = arg.substring("gc-".length());
@@ -97,6 +114,38 @@ public class Profiler
               ex.printStackTrace();
             }
           }
+          else if (arg.startsWith("outputlimit-"))
+          {
+            arg = arg.substring("outputlimit-".length());
+            try
+            {
+              long argVal = Long.parseLong(arg);
+              if (argVal > 0)
+              {
+                outputLimit = argVal;
+              }
+            }
+            catch (NumberFormatException ex)
+            {
+              ex.printStackTrace();
+            }
+          }
+          else if (arg.startsWith("every-"))
+          {
+            arg = arg.substring("every-".length());
+            try
+            {
+              long argVal = Long.parseLong(arg);
+              if (argVal > 0)
+              {
+                sampleEvery = argVal;
+              }
+            }
+            catch (NumberFormatException ex)
+            {
+              ex.printStackTrace();
+            }
+          }          
           else if (arg.startsWith("periodic-"))
           {
             arg = arg.substring("periodic-".length());
@@ -137,7 +186,11 @@ public class Profiler
           else if (arg.equals("exactmatch"))
           {
             exactmatch = true;
-          }          
+          }      
+          else if (arg.equals("notrace"))
+          {
+            notrace = true;
+          } 
           else if (arg.length() > 0)
           {
             System.out.println("## InMemProfiler: Unrecognised argument: " + arg);
@@ -152,7 +205,11 @@ public class Profiler
                                            exactmatch,
                                            gcInterval, 
                                            periodicInterval,
+                                           outputLimit,
+                                           sampleEvery,
                                            numResets,
+                                           notrace,
+                                           traceClassFilter,
                                            path,
                                            allArgs);
       

@@ -14,11 +14,11 @@ public class ProfilerData
     collectedObjects = new BucketContainer(bucketIntervals);
   }
 
-  public void newObject(String className, 
+  public Trace newObject(String className, 
                         long size, 
                         Trace trace)
   {
-    liveObjects.addObject(className, size, trace);    
+    return liveObjects.addObject(className, size, trace);    
   }
   
   /**
@@ -39,12 +39,15 @@ public class ProfilerData
   }
   
   public synchronized void outputData(StringBuilder str,
-                                      Formatter fmt)
+                                      Formatter fmt, 
+                                      long outputLimit,
+                                      boolean noTrace, 
+                                      String[] traceClassFilter)
   {
     str.append("Live objects:\n");
-    liveObjects.outputData(str, fmt, 1);
+    liveObjects.outputData(str, fmt, 1, outputLimit, noTrace, traceClassFilter);
     str.append("\n");
     str.append("Collected objects:\n");
-    collectedObjects.outputData(str, fmt, 1);
+    collectedObjects.outputData(str, fmt, 1, outputLimit, noTrace, traceClassFilter);
   }
 }
