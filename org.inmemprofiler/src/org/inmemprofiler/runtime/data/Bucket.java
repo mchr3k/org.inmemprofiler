@@ -52,14 +52,14 @@ public class Bucket
    * @param fmt
    * @param indent
    * @param outputLimit 
-   * @param noTrace 
+   * @param traceAllocs 
    * @param traceClassFilter 
    */
   public void outputData(StringBuilder str,
                          Formatter fmt,
                          int indent, 
                          long outputLimit, 
-                         boolean noTrace, 
+                         boolean traceAllocs, 
                          String[] traceClassFilter)
   {    
     List<Entry<String, AllocatedClassData>> sortedClassData = new LinkedList<Entry<String, AllocatedClassData>>(perClassData.entrySet());
@@ -83,7 +83,7 @@ public class Bucket
       }
       
       classData.getValue().outputData(classData.getKey(), str, fmt, 
-                                      indent + 1, outputLimit, noTrace,
+                                      indent + 1, outputLimit, traceAllocs,
                                       traceClassFilter);
       
       outputCount++;

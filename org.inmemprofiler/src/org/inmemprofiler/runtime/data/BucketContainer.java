@@ -51,7 +51,7 @@ public class BucketContainer
                          Formatter fmt,
                          int indent, 
                          long outputLimit, 
-                         boolean noTrace, 
+                         boolean traceAllocs, 
                          String[] traceClassFilter)
   {   
     long lastLong = 0;
@@ -66,7 +66,7 @@ public class BucketContainer
       str.append("(s) :\n");
       
       Bucket bucket = collectedInstanceBuckets.get(bucketInterval);
-      bucket.outputData(str, fmt, indent + 1, outputLimit, noTrace, traceClassFilter);
+      bucket.outputData(str, fmt, indent + 1, outputLimit, traceAllocs, traceClassFilter);
       
       lastLong = bucketInterval;
     }    

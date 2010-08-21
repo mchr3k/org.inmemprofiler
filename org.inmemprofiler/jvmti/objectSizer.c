@@ -26,6 +26,8 @@ typedef struct {
 	
 	/* Startup options */
 	char*          options;
+	jboolean       trackObj;
+	jboolean       trackArr;
 } GlobalAgentData;
 
 static GlobalAgentData *gdata;
@@ -115,7 +117,7 @@ cbClassFileLoadHook(jvmtiEnv *jvmti, JNIEnv* env,
 		newImage = NULL;
 		newLength = 0;
 
-		/* Call the class file reader/write demo code */
+		/* Call the class file reader/write demo code */		
 		java_crw_demo(cnum,
 			classname,
 			class_data,
@@ -125,8 +127,10 @@ cbClassFileLoadHook(jvmtiEnv *jvmti, JNIEnv* env,
 			"L" STRING(PROFILER_class) ";",
 			NULL, NULL,
 			NULL, NULL,
-			STRING(PROFILER_newobj), "(Ljava/lang/Object;)V",
-			STRING(PROFILER_newobj), "(Ljava/lang/Object;)V",
+			(gdata->trackObj == JNI_TRUE ? STRING(PROFILER_newobj) : NULL), 
+			(gdata->trackObj == JNI_TRUE ? "(Ljava/lang/Object;)V" : NULL),
+			(gdata->trackArr == JNI_TRUE ? STRING(PROFILER_newobj) : NULL), 
+			(gdata->trackArr == JNI_TRUE ? "(Ljava/lang/Object;)V" : NULL),
 			&newImage,
 			&newLength,
 			NULL,
@@ -228,7 +232,10 @@ Agent_OnLoad(JavaVM *vm, char *options, void *reserved)
                           JVMTI_EVENT_CLASS_FILE_LOAD_HOOK, (jthread)NULL);
     check_jvmti_error(jvmti, error, "Cannot set event notification");
    
-    /* Save off options for later */
+    /* Save off options for later */    	   
+	jboolean instrumentObjAllocs = JNI_TRUE;
+	jboolean instrumentArrAllocs = JNI_TRUE;
+	
 	if (options == NULL)
 	{
 	  gdata->options = NULL;
@@ -243,15 +250,67 @@ Agent_OnLoad(JavaVM *vm, char *options, void *reserved)
 	  else
 	  {
 	    char* storedOptions = malloc(optionsLen * sizeof(char));
-	    storedOptions[optionsLen - 1] = '\0';
 	    if (storedOptions == NULL)
 	    {
   	      fatal_error("Failed to save options\n");
 	    }
+	    
 	    strncpy(storedOptions, options, (size_t)optionsLen);
+	    storedOptions[optionsLen - 1] = '\0';
+	    
+	    char* includeOption = strstr(storedOptions, "#include");
+	    if (includeOption != NULL)
+	    {	      
+	      char* endIncludeOption = strstr((includeOption + 1), "#");
+	      
+	      if (endIncludeOption == NULL)
+	      {
+	        endIncludeOption = storedOptions + optionsLen - 1;
+	      }
+	    
+	      instrumentObjAllocs = JNI_FALSE;
+	      instrumentArrAllocs = JNI_FALSE;
+	      
+	      // Look for [ within the include string
+	      char* arrayCharIndex = strstr((includeOption + 1), "[");
+	      if ((arrayCharIndex != NULL) &&
+	          (arrayCharIndex < endIncludeOption))
+	      {
+	        instrumentArrAllocs = JNI_TRUE;	        	     
+	      }
+	      
+	      // Look for a non [ within the include string
+	      // can take the form comma then non array char or
+	      // dash then non array char
+	      char* dashIndex = strstr((includeOption + 1), "-");
+	      if ((dashIndex != NULL) &&
+	          (dashIndex < endIncludeOption) &&
+	          (dashIndex[1] != '['))
+	      {
+	        instrumentObjAllocs = JNI_TRUE;
+	      }
+	      else
+	      {
+	        char* commaIndex = strstr((includeOption + 1), ",");
+	        while ((commaIndex != NULL) &&
+	               (commaIndex < endIncludeOption))
+	        {
+	          if (commaIndex[1] != '[')
+	          {
+	            instrumentObjAllocs = JNI_TRUE;
+	            break;
+	          }
+	        
+	          commaIndex = strstr((commaIndex + 1), ",");
+	        }
+	      }	      
+	    }
+	    	    
 	    gdata->options = storedOptions;
 	  }
 	}
+	gdata->trackArr = instrumentArrAllocs;
+	gdata->trackObj = instrumentObjAllocs;
 	
     /* We return JNI_OK to signify success */
     return JNI_OK;

@@ -107,7 +107,7 @@ public class AllocatedClassData
                                       Formatter fmt,
                                       int indent, 
                                       long outputLimit, 
-                                      boolean noTrace, 
+                                      boolean traceAllocs, 
                                       String[] traceClassFilter)
   {
     if (count.get() == 0)
@@ -123,7 +123,7 @@ public class AllocatedClassData
     str.append(className);
     str.append("\n");
     
-    if (!noTrace)
+    if (traceAllocs)
     {
       str.append("\n");
       Util.indent(str, indent);

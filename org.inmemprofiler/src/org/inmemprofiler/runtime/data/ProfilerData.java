@@ -41,13 +41,22 @@ public class ProfilerData
   public synchronized void outputData(StringBuilder str,
                                       Formatter fmt, 
                                       long outputLimit,
-                                      boolean noTrace, 
-                                      String[] traceClassFilter)
+                                      boolean traceAllocs, 
+                                      String[] traceClassFilter, 
+                                      boolean trackCollection)
   {
-    str.append("Live objects:\n");
-    liveObjects.outputData(str, fmt, 1, outputLimit, noTrace, traceClassFilter);
-    str.append("\n");
-    str.append("Collected objects:\n");
-    collectedObjects.outputData(str, fmt, 1, outputLimit, noTrace, traceClassFilter);
+    if (trackCollection)
+    {
+      str.append("Live objects:\n");
+      liveObjects.outputData(str, fmt, 1, outputLimit, traceAllocs, traceClassFilter);
+      str.append("\n");
+      str.append("Collected objects:\n");
+      collectedObjects.outputData(str, fmt, 1, outputLimit, traceAllocs, traceClassFilter);
+    }
+    else
+    {
+      str.append("Allocated objects:\n");
+      liveObjects.outputData(str, fmt, 1, outputLimit, traceAllocs, traceClassFilter);
+    }
   }
 }

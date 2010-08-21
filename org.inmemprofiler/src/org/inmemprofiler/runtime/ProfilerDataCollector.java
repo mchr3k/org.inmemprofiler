@@ -31,11 +31,11 @@ public class ProfilerDataCollector
   // Reference Q used for recording collection times
   private static final ReferenceQueue<Object> objectCollectedQueue = new ReferenceQueue<Object>();
   
-  // Limit amount of output data: -1 means no limit.
-  private static long outputLimit = -1;
+  // Limit amount of output data
+  private static long outputLimit = Integer.MAX_VALUE;
   private static long sampleEvery = 1;
   private static AtomicLong sampleCount = new AtomicLong(0);
-  private static boolean noTrace = false;
+  private static boolean traceAllocs = false;
 
   public static void profileNewObject(Object ref)
   {
@@ -122,59 +122,32 @@ public class ProfilerDataCollector
 
     long size = ObjectSizer.getObjectSize(ref);
     Trace trace = null;
-    if (!noTrace)
+    if (traceAllocs)
     {
-      trace = getTrace(3, className);
+      trace = Trace.getTrace(3, className);
     }
     
     // Lifetime buckets
     ProfilerData lData = data;
     trace = lData.newObject(className, size, trace);
-    LifetimeWeakReference key = new LifetimeWeakReference(ref, 
-                                                          objectCollectedQueue, 
-                                                          className, 
-                                                          System.currentTimeMillis(),
-                                                          size,
-                                                          trace,
-                                                          lData);
-    weakRefSet.put(key, setValue);
+    
+    if (trackCollection)
+    {
+      LifetimeWeakReference key = new LifetimeWeakReference(ref, 
+                                                            objectCollectedQueue, 
+                                                            className, 
+                                                            System.currentTimeMillis(),
+                                                            size,
+                                                            trace,
+                                                            lData);
+      weakRefSet.put(key, setValue);
+    }
   }  
-
-  private static Trace getTrace(int ignoreDepth, String className)
-  {
-    Exception ex = new Exception();
-    StackTraceElement[] stackTrace = ex.getStackTrace();
-        
-    if (!className.startsWith("["))
-    {
-      // Non array object - count number of frames until constructor frame
-      for (int ii = ignoreDepth; ii < stackTrace.length; ii++)
-      {
-        if (className.equals(stackTrace[ii].getClassName()) &&
-            "<init>".equals(stackTrace[ii].getMethodName()))
-        {
-          ignoreDepth = ii + 1;
-          break;
-        }
-      }
-    }
-    
-    StackTraceElement[] fixedTrace = new StackTraceElement[stackTrace.length - ignoreDepth];
-    for (int ii = ignoreDepth; ii < stackTrace.length; ii++)
-    {
-      fixedTrace[ii-ignoreDepth] = new StackTraceElement(stackTrace[ii].getClassName(),
-                                                         stackTrace[ii].getMethodName(),
-                                                         stackTrace[ii].getFileName(),
-                                                         -1);
-    }
-    
-    Trace trace = new Trace(fixedTrace);
-    return trace;
-  }
 
   public static void outputData(StringBuilder str)
   {
-    data.outputData(str, new Formatter(str), outputLimit, noTrace, traceClassFilter);
+    data.outputData(str, new Formatter(str), outputLimit, traceAllocs, 
+                    traceClassFilter, trackCollection);
     FileOutput.writeOutput(str.toString());
   }
   
@@ -267,7 +240,10 @@ public class ProfilerDataCollector
         while (true)
         {
           Thread.sleep(gcInterval);
-          System.gc();
+          if (ObjectProfiler.profilingEnabled)
+          {
+            System.gc();
+          }
         }
       }
       catch (InterruptedException e)
@@ -310,18 +286,21 @@ public class ProfilerDataCollector
       {
         while (true)
         {
-          Thread.sleep(periodicInterval);          
-          StringBuilder str = new StringBuilder("Reason for output: Periodic output\n");
-          ProfilerDataCollector.outputData(str);
-                    
-          if (numResets != 0)
+          Thread.sleep(periodicInterval);
+          if (ObjectProfiler.profilingEnabled)
           {
-            Profiler.resetData();
-          }
-          
-          if (numResets > 0)
-          {
-            numResets--;
+            StringBuilder str = new StringBuilder("Reason for output: Periodic output\n");
+            ProfilerDataCollector.outputData(str);
+                      
+            if (numResets != 0)
+            {
+              Profiler.resetData();
+            }
+            
+            if (numResets > 0)
+            {
+              numResets--;
+            }
           }
         }
       }
@@ -337,6 +316,7 @@ public class ProfilerDataCollector
   private static String[] excludeClassPrefixes;
   private static String[] traceClassFilter;
   private static boolean exactMatch;
+  private static boolean trackCollection;
 
   public static void beginProfiling(long[] buckets,
                                     String[] allowedPrefixes, 
@@ -347,7 +327,9 @@ public class ProfilerDataCollector
                                     long outputlimit, 
                                     long sampleevery, 
                                     long numResets, 
-                                    boolean notrace, 
+                                    boolean traceallocs, 
+                                    boolean trackcollection, 
+                                    boolean delayprofiling, 
                                     String[] traceclassfilter, 
                                     String path, 
                                     String allArgs)
@@ -380,8 +362,9 @@ public class ProfilerDataCollector
     exactMatch = exactmatch;
     outputLimit = outputlimit;
     sampleEvery = sampleevery;
-    noTrace = notrace;
+    traceAllocs = traceallocs;
     traceClassFilter = traceclassfilter;
+    trackCollection = trackcollection;
 
     Thread[] workThreads = new Thread[4];
     if (gcInterval > -1)
@@ -396,6 +379,7 @@ public class ProfilerDataCollector
       poTh.start();
       workThreads[1] = poTh.th;
     }
+    if (trackCollection)
     {
       ProfilerDataCollectorThread pdcTh = new ProfilerDataCollectorThread();
       pdcTh.start();
@@ -417,6 +401,26 @@ public class ProfilerDataCollector
     }        
 
     ObjectProfiler.ignoreThreads = workThreads;
+    
+    if (delayprofiling)
+    {
+      FileOutput.writeOutput("## Profiling delayed");      
+    }
+    else
+    {
+      ObjectProfiler.profilingEnabled = true;
+    }
+  }
+
+  public static void beginPausedProfiling()
+  {
+    FileOutput.writeOutput("## Profiling enabled");
+    ObjectProfiler.profilingEnabled = true;
+  }
+
+  public static void pauseProfiling()
+  {
+    FileOutput.writeOutput("## Profiling disabled");
     ObjectProfiler.profilingEnabled = true;
   }
 }

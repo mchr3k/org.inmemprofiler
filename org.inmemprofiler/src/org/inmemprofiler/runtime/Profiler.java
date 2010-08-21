@@ -8,11 +8,11 @@ import java.util.Date;
  */
 public class Profiler
 {
-  private static boolean profilingStarted = false;
+  private static boolean parsedArgs = false;
   
   public static synchronized void beginProfiling(String allArgs)
   {
-    if (!profilingStarted)
+    if (!parsedArgs)
     {
       System.out.println(new Date().toString() + " ## Enable InMemProfiler : Args : " + allArgs);
       
@@ -21,14 +21,18 @@ public class Profiler
       String[] prefixes = null;
       String[] excludePrefixes = null;
       String[] traceClassFilter = null;
+      
       boolean exactmatch = false;
-      boolean notrace = false;
+      boolean traceallocs = false;
+      boolean trackcollection = false;
+      boolean delayprofiling = false;
+      
       long gcInterval = -1;
       long periodicInterval = -1;
-      long outputLimit = -1;
+      long outputLimit = Integer.MAX_VALUE;
       long sampleEvery = 1;
       long numResets = 0;      
-      String path = null;
+      String path = null;      
       
       if ((allArgs != null) && (allArgs.indexOf('#') > -1))
       {
@@ -187,10 +191,18 @@ public class Profiler
           {
             exactmatch = true;
           }      
-          else if (arg.equals("notrace"))
+          else if (arg.equals("traceallocs"))
           {
-            notrace = true;
-          } 
+            traceallocs = true;
+          }
+          else if (arg.equals("trackcollection"))
+          {
+            trackcollection = true;
+          }
+          else if (arg.equals("delayprofiling"))
+          {
+            delayprofiling = true;
+          }
           else if (arg.length() > 0)
           {
             System.out.println("## InMemProfiler: Unrecognised argument: " + arg);
@@ -208,12 +220,45 @@ public class Profiler
                                            outputLimit,
                                            sampleEvery,
                                            numResets,
-                                           notrace,
+                                           traceallocs,
+                                           trackcollection,
+                                           delayprofiling,
                                            traceClassFilter,
                                            path,
                                            allArgs);
       
-      profilingStarted = true;
+      parsedArgs = true;
+    }
+  }
+  
+  public static void beginPausedProfiling()
+  {
+    UncaughtExceptionHandler handler = Thread.currentThread().getUncaughtExceptionHandler();
+    try
+    {
+      Thread.currentThread().setUncaughtExceptionHandler(ObjectProfiler.CRITICAL_BLOCK);
+      if (parsedArgs)
+      {
+        ProfilerDataCollector.beginPausedProfiling();
+      }
+    }
+    finally
+    {
+      Thread.currentThread().setUncaughtExceptionHandler(handler);
+    }
+  }
+  
+  public static void pauseProfiling()
+  {
+    UncaughtExceptionHandler handler = Thread.currentThread().getUncaughtExceptionHandler();
+    try
+    {
+      Thread.currentThread().setUncaughtExceptionHandler(ObjectProfiler.CRITICAL_BLOCK);
+      ProfilerDataCollector.pauseProfiling();
+    }
+    finally
+    {
+      Thread.currentThread().setUncaughtExceptionHandler(handler);
     }
   }
   
