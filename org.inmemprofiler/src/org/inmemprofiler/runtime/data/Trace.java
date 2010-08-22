@@ -125,24 +125,13 @@ public class Trace
   }
     
   public static Map<String,Set<String>> getPerClassMethods(Trace trace, 
-                                                     String[] allocatingClassTargets)
+                                                           String[] allocatingClassTargets)
   {
     Map<String,Set<String>> perClassMethods = new HashMap<String, Set<String>>(1);
     
-    String lastMatchingTarget = null;
     for (StackTraceElement element : trace.stackFrames)
     {
       String className = element.getClassName();
-      
-      String matchingTarget = getMatchingTarget(className, allocatingClassTargets);
-      if (lastMatchingTarget == null)
-      {
-        lastMatchingTarget = matchingTarget;
-      }
-      else if (!lastMatchingTarget.equals(matchingTarget))
-      {
-        break;
-      }
       
       Set<String> methods = perClassMethods.get(className);
       if (methods == null)
@@ -151,13 +140,22 @@ public class Trace
         perClassMethods.put(className, methods);
       }
       methods.add(element.getMethodName());
+            
+      if (allocatingClassTargets != null)
+      {
+        String matchingTarget = getMatchingTarget(className, allocatingClassTargets);
+        if (matchingTarget != null)
+        {
+          break;
+        }
+      }
     }
     
     return perClassMethods;
   }
   
   public static String getMatchingTarget(String className,
-                                   String[] allocatingClassTargets)
+                                         String[] allocatingClassTargets)
   {
     for (String target : allocatingClassTargets)
     {

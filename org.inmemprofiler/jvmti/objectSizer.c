@@ -8,7 +8,7 @@
 
 #include "objectSizer.h"
 
-#define PROFILER_CONTROL_class   org/inmemprofiler/runtime/Profiler       /* Name of control class */
+#define PROFILER_CONTROL_class   org/inmemprofiler/runtime/ProfilerAPI    /* Name of control class */
 #define PROFILER_class           org/inmemprofiler/runtime/ObjectProfiler /* Name of class we are using */
 #define PROFILER_newobj          newObject      /* Name of java init method */
 

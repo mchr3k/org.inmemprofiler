@@ -206,7 +206,7 @@ public class ProfilerAPI
           {
             exactmatch = true;
           }      
-          else if (arg.equals("traceallocs"))
+          else if (arg.equals("trace"))
           {
             traceallocs = true;
           }
