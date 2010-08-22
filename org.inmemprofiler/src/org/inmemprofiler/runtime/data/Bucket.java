@@ -57,13 +57,15 @@ public class Bucket
    * @param traceAllocs 
    * @param traceClassFilter 
    */
-  public void outputData(StringBuilder str,
-                         Formatter fmt,
-                         int indent, 
-                         long outputLimit, 
-                         boolean traceAllocs, 
-                         String[] traceClassFilter)
+  public BucketSummary outputData(StringBuilder str,
+                                  Formatter fmt,
+                                  int indent, 
+                                  long outputLimit, 
+                                  boolean traceAllocs, 
+                                  String[] traceClassFilter)
   {    
+    BucketSummary summary = new BucketSummary();
+    
     List<Entry<String, AllocatedClassData>> sortedClassData = new LinkedList<Entry<String, AllocatedClassData>>(perClassData.entrySet());
     Collections.sort(sortedClassData, new Comparator<Entry<String, AllocatedClassData>>() {
         @Override
@@ -86,9 +88,17 @@ public class Bucket
       
       classData.getValue().outputData(classData.getKey(), str, fmt, 
                                       indent + 1, outputLimit, traceAllocs,
-                                      traceClassFilter);
+                                      traceClassFilter, summary);
       
       outputCount++;
     }
+    
+    return summary;
+  }
+  
+  public static class BucketSummary
+  {
+    public long count;
+    public long size;
   }
 }

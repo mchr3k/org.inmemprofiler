@@ -4,6 +4,7 @@ import java.util.Formatter;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.inmemprofiler.runtime.data.Bucket.BucketSummary;
 import org.inmemprofiler.runtime.util.Util;
 
 /**
@@ -56,6 +57,7 @@ public class BucketContainer
                          String[] traceClassFilter)
   {   
     long lastLong = 0;
+    BucketSummary[] summaries = new BucketSummary[bucketIntervals.length];
     for (int ii = 0; ii < bucketIntervals.length; ii++)
     {
       long bucketInterval = bucketIntervals[ii];
@@ -67,10 +69,32 @@ public class BucketContainer
       str.append("(s) :\n");
       
       Bucket bucket = collectedInstanceBuckets.get(bucketInterval);
-      bucket.outputData(str, fmt, indent + 1, outputLimit, traceAllocs, traceClassFilter);
+      summaries[ii] = bucket.outputData(str, fmt, indent + 1, outputLimit, traceAllocs, traceClassFilter);      
       
       lastLong = bucketInterval;
     }    
+    
+    str.append("\n");
+    Util.indent(str, indent);
+    str.append("Buckets summary:\n");
+    lastLong = 0;
+    for (int ii = 0; ii < bucketIntervals.length; ii++)
+    {
+      long bucketInterval = bucketIntervals[ii];
+      BucketSummary summary = summaries[ii];
+      
+      Util.indent(str, indent + 1);
+      str.append(summary.size);
+      str.append(":");
+      str.append(summary.count);
+      str.append(" - ");
+      str.append(lastLong);
+      str.append("(s) - ");
+      str.append(printLong(bucketInterval));
+      str.append("(s)\n");      
+      
+      lastLong = bucketInterval;
+    } 
   }
   
   private String printLong(long val)

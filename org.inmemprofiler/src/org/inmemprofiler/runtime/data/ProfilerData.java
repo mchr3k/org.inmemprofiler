@@ -2,6 +2,9 @@ package org.inmemprofiler.runtime.data;
 
 import java.util.Formatter;
 
+import org.inmemprofiler.runtime.data.Bucket.BucketSummary;
+import org.inmemprofiler.runtime.util.Util;
+
 public class ProfilerData
 {
   private final Bucket liveObjects = new Bucket();
@@ -51,8 +54,16 @@ public class ProfilerData
     if (trackCollection)
     {
       str.append("Live objects:\n");
-      liveObjects.outputData(str, fmt, 1, outputLimit, traceAllocs, traceClassFilter);
+      BucketSummary summary = liveObjects.outputData(str, fmt, 1, outputLimit, 
+                                                     traceAllocs, traceClassFilter);      
       str.append("\n");
+      str.append("Live objects summary:\n");
+      Util.indent(str, 1);
+      str.append(summary.size);
+      str.append(":");
+      str.append(summary.count);
+      str.append("\n\n");
+      
       str.append("Collected objects:\n");
       collectedObjects.outputData(str, fmt, 1, outputLimit, traceAllocs, traceClassFilter);
     }

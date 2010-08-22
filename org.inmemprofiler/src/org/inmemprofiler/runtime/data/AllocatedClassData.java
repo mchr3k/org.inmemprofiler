@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.inmemprofiler.runtime.data.Bucket.BucketSummary;
 import org.inmemprofiler.runtime.util.Util;
 
 public class AllocatedClassData
@@ -95,7 +96,8 @@ public class AllocatedClassData
                                       int indent, 
                                       long outputLimit, 
                                       boolean traceAllocs, 
-                                      String[] traceClassFilter)
+                                      String[] traceClassFilter, 
+                                      BucketSummary summary)
   {
     if (count.get() == 0)
     {
@@ -109,6 +111,9 @@ public class AllocatedClassData
     str.append(" - ");
     str.append(className);
     str.append("\n");
+    
+    summary.count += count.get();
+    summary.size += size.get();
     
     if (traceAllocs)
     {
