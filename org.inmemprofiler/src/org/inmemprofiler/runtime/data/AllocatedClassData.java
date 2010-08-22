@@ -3,8 +3,6 @@ package org.inmemprofiler.runtime.data;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Formatter;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +21,10 @@ public class AllocatedClassData
   private final Map<Trace, Trace> canonicalTraces = new ConcurrentHashMap<Trace, Trace>();
   private final Map<String, AllocatingClassData> allocatingClasses = new ConcurrentHashMap<String, AllocatingClassData>();
   
-  public synchronized Trace addObject(String className, long size, Trace trace)
+  public synchronized Trace addObject(String className, 
+                                      long size, 
+                                      Trace trace, 
+                                      String[] allocatingClassTargets)
   { 
     this.count.incrementAndGet();
     this.size.addAndGet(size);
@@ -40,7 +41,8 @@ public class AllocatedClassData
       trace = canonicalTraces.get(trace);
       traceData.addObject(size);
       
-      Map<String,Set<String>> perClassMethods = getPerClassMethods(trace);
+      Map<String,Set<String>> perClassMethods = Trace.getPerClassMethods(trace, 
+                                                                   allocatingClassTargets);
       for (Entry<String,Set<String>> element : perClassMethods.entrySet())
       {
         String allocatingClassName = element.getKey();
@@ -56,27 +58,11 @@ public class AllocatedClassData
     
     return trace;
   }
-  
-  private Map<String,Set<String>> getPerClassMethods(Trace trace)
-  {
-    Map<String,Set<String>> perClassMethods = new HashMap<String, Set<String>>(1);
-    
-    for (StackTraceElement element : trace.stackFrames)
-    {
-      String className = element.getClassName();
-      Set<String> methods = perClassMethods.get(className);
-      if (methods == null)
-      {
-        methods = new HashSet<String>(1);
-        perClassMethods.put(className, methods);
-      }
-      methods.add(element.getMethodName());
-    }
-    
-    return perClassMethods;
-  }
-  
-  public synchronized void removeObject(String className, long size, Trace trace)
+
+  public synchronized void removeObject(String className, 
+                                        long size, 
+                                        Trace trace, 
+                                        String[] allocatingClassTargets)
   {
     this.count.decrementAndGet();
     this.size.addAndGet(-1 * size);
@@ -89,7 +75,8 @@ public class AllocatedClassData
         traceData.removeObject(size);
       }    
       
-      Map<String,Set<String>> perClassMethods = getPerClassMethods(trace);
+      Map<String,Set<String>> perClassMethods = Trace.getPerClassMethods(trace,
+                                                                   allocatingClassTargets);
       for (Entry<String,Set<String>> element : perClassMethods.entrySet())
       {
         String allocatingClassName = element.getKey();

@@ -16,9 +16,10 @@ public class ProfilerData
 
   public Trace newObject(String className, 
                         long size, 
-                        Trace trace)
+                        Trace trace, 
+                        String[] allocatingClassTargets)
   {
-    return liveObjects.addObject(className, size, trace);    
+    return liveObjects.addObject(className, size, trace, allocatingClassTargets);    
   }
   
   /**
@@ -28,14 +29,16 @@ public class ProfilerData
    * @param size
    * @param trace
    * @param lifetime
+   * @param allocatingClassTargets 
    */
   public synchronized void collectObject(String className, 
                                          long size, 
                                          Trace trace, 
-                                         long lifetime)
+                                         long lifetime, 
+                                         String[] allocatingClassTargets)
   {
-    liveObjects.removeObject(className, size, trace);
-    collectedObjects.collectObject(className, size, trace, lifetime);
+    liveObjects.removeObject(className, size, trace, allocatingClassTargets);
+    collectedObjects.collectObject(className, size, trace, lifetime, allocatingClassTargets);
   }
   
   public synchronized void outputData(StringBuilder str,

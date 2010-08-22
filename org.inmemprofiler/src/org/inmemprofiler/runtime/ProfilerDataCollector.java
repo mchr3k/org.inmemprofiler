@@ -129,7 +129,7 @@ public class ProfilerDataCollector
     
     // Lifetime buckets
     ProfilerData lData = data;
-    trace = lData.newObject(className, size, trace);
+    trace = lData.newObject(className, size, trace, allocatingClassTargets);
     
     if (trackCollection)
     {
@@ -195,7 +195,8 @@ public class ProfilerDataCollector
               - instanceCreationTime;
 
           ref.data.collectObject(className, size, trace,
-                                 instanceLifeTime / 1000);
+                                 instanceLifeTime / 1000,
+                                 allocatingClassTargets);
         }
       }
       catch (InterruptedException e)
@@ -294,7 +295,7 @@ public class ProfilerDataCollector
                       
             if (numResets != 0)
             {
-              Profiler.resetData();
+              ProfilerAPI.resetData();
             }
             
             if (numResets > 0)
@@ -315,8 +316,9 @@ public class ProfilerDataCollector
   private static String[] classPrefixes;
   private static String[] excludeClassPrefixes;
   private static String[] traceClassFilter;
+  private static String[] allocatingClassTargets;
   private static boolean exactMatch;
-  private static boolean trackCollection;
+  private static boolean trackCollection;  
 
   public static void beginProfiling(long[] buckets,
                                     String[] allowedPrefixes, 
@@ -331,9 +333,10 @@ public class ProfilerDataCollector
                                     boolean trackcollection, 
                                     boolean delayprofiling, 
                                     String[] traceclassfilter, 
+                                    String[] allocatingclasstargets, 
                                     String path, 
                                     String allArgs)
-  {
+  {    
     if (path == null)
     {
       path = "./";
@@ -364,6 +367,7 @@ public class ProfilerDataCollector
     sampleEvery = sampleevery;
     traceAllocs = traceallocs;
     traceClassFilter = traceclassfilter;
+    allocatingClassTargets = allocatingclasstargets;
     trackCollection = trackcollection;
 
     Thread[] workThreads = new Thread[4];

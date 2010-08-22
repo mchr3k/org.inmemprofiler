@@ -6,7 +6,7 @@ import java.util.Date;
 /**
  * Public API for resetting the stored data and requesting output.
  */
-public class Profiler
+public class ProfilerAPI
 {
   private static boolean parsedArgs = false;
   
@@ -21,6 +21,7 @@ public class Profiler
       String[] prefixes = null;
       String[] excludePrefixes = null;
       String[] traceClassFilter = null;
+      String[] allocatingClassTargets = null;
       
       boolean exactmatch = false;
       boolean traceallocs = false;
@@ -31,7 +32,8 @@ public class Profiler
       long periodicInterval = -1;
       long outputLimit = Integer.MAX_VALUE;
       long sampleEvery = 1;
-      long numResets = 0;      
+      long numResets = 0;
+      
       String path = null;      
       
       if ((allArgs != null) && (allArgs.indexOf('#') > -1))
@@ -102,6 +104,19 @@ public class Profiler
               traceClassFilter = new String[] {arg};
             }
           }
+          else if (arg.startsWith("allocatingclasstargets-"))
+          {
+            arg = arg.substring("allocatingclasstargets-".length());
+            if (arg.indexOf(",") > -1)
+            {
+              String[] prefixStrings = arg.split(",");
+              allocatingClassTargets = prefixStrings;
+            }
+            else
+            {
+              allocatingClassTargets = new String[] {arg};
+            }
+          }          
           else if (arg.startsWith("gc-"))
           {
             arg = arg.substring("gc-".length());
@@ -224,6 +239,7 @@ public class Profiler
                                            trackcollection,
                                            delayprofiling,
                                            traceClassFilter,
+                                           allocatingClassTargets,
                                            path,
                                            allArgs);
       
@@ -231,7 +247,7 @@ public class Profiler
     }
   }
   
-  public static void beginPausedProfiling()
+  public static synchronized void beginPausedProfiling()
   {
     UncaughtExceptionHandler handler = Thread.currentThread().getUncaughtExceptionHandler();
     try
@@ -248,7 +264,7 @@ public class Profiler
     }
   }
   
-  public static void pauseProfiling()
+  public static synchronized void pauseProfiling()
   {
     UncaughtExceptionHandler handler = Thread.currentThread().getUncaughtExceptionHandler();
     try

@@ -1,5 +1,10 @@
 package org.inmemprofiler.runtime.data;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 public class Trace
 {
   public final StackTraceElement[] stackFrames;
@@ -117,5 +122,50 @@ public class Trace
     
     Trace trace = new Trace(fixedTrace);
     return trace;
+  }
+    
+  public static Map<String,Set<String>> getPerClassMethods(Trace trace, 
+                                                     String[] allocatingClassTargets)
+  {
+    Map<String,Set<String>> perClassMethods = new HashMap<String, Set<String>>(1);
+    
+    String lastMatchingTarget = null;
+    for (StackTraceElement element : trace.stackFrames)
+    {
+      String className = element.getClassName();
+      
+      String matchingTarget = getMatchingTarget(className, allocatingClassTargets);
+      if (lastMatchingTarget == null)
+      {
+        lastMatchingTarget = matchingTarget;
+      }
+      else if (!lastMatchingTarget.equals(matchingTarget))
+      {
+        break;
+      }
+      
+      Set<String> methods = perClassMethods.get(className);
+      if (methods == null)
+      {
+        methods = new HashSet<String>(1);
+        perClassMethods.put(className, methods);
+      }
+      methods.add(element.getMethodName());
+    }
+    
+    return perClassMethods;
+  }
+  
+  public static String getMatchingTarget(String className,
+                                   String[] allocatingClassTargets)
+  {
+    for (String target : allocatingClassTargets)
+    {
+      if (className.startsWith(target))
+      {
+        return target;
+      }
+    }
+    return null;
   }
 }

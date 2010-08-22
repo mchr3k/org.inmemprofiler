@@ -16,14 +16,15 @@ public class Bucket
 {
   private final Map<String, AllocatedClassData> perClassData = new ConcurrentHashMap<String, AllocatedClassData>(); 
   
-  public Trace addObject(String className, long size, Trace trace)
+  public Trace addObject(String className, long size, Trace trace, 
+                         String[] allocatingClassTargets)
   {
     AllocatedClassData classData = perClassData.get(className);
     if (classData == null)
     {
       classData = newClass(className);
     }
-    return classData.addObject(className, size, trace);
+    return classData.addObject(className, size, trace, allocatingClassTargets);
   }
   
   private synchronized AllocatedClassData newClass(String className)
@@ -37,12 +38,13 @@ public class Bucket
     return classData;
   }
   
-  public void removeObject(String className, long size, Trace trace)
+  public void removeObject(String className, long size, Trace trace, 
+                           String[] allocatingClassTargets)
   {
     AllocatedClassData classData = perClassData.get(className);
     if (classData != null)
     {
-      classData.removeObject(className, size, trace);
+      classData.removeObject(className, size, trace, allocatingClassTargets);
     }    
   }
   

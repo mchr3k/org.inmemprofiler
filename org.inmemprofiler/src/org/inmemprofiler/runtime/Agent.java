@@ -24,6 +24,6 @@ public class Agent
   public static void premain(String agentArgs, Instrumentation inst)
   {
     System.out.println("## Loaded InMemProfiler Agent");
-    Profiler.beginProfiling(agentArgs);
+    ProfilerAPI.beginProfiling(agentArgs);
   }
 }

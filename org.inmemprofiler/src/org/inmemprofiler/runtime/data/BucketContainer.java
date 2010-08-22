@@ -28,11 +28,12 @@ public class BucketContainer
   public void collectObject(String className, 
                                          long size, 
                                          Trace trace, 
-                                         long lifetime)
+                                         long lifetime, 
+                                         String[] allocatingClassTargets)
   {
     long bucketIndex = getBucketIndex(lifetime);
     Bucket bucket = collectedInstanceBuckets.get(bucketIndex);
-    bucket.addObject(className, size, trace);  
+    bucket.addObject(className, size, trace, allocatingClassTargets);  
   }
 
   private long getBucketIndex(long instanceLifetime)
