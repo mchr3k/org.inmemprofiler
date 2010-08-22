@@ -14,7 +14,7 @@ import org.inmemprofiler.runtime.util.Util;
  */
 public class BucketContainer
 {
-  private Map<Long,Bucket> collectedInstanceBuckets = new ConcurrentHashMap<Long, Bucket>();
+  private Map<Long,Bucket> collectedInstanceBuckets = new ConcurrentHashMap<Long, Bucket>(1, 0.7f, 4);
   public final long[] bucketIntervals;
   
   public BucketContainer(long[] buckets)

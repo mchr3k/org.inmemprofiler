@@ -44,9 +44,9 @@ public class ProfilerAPI
           if (arg.startsWith("bucket-"))
           {
             arg = arg.substring("bucket-".length());
-            if (arg.indexOf(",") > -1)
+            try
             {
-              try
+              if (arg.indexOf(",") > -1)
               {
                 String[] bucketStrings = arg.split(",");
                 long[] argBuckets = new long[bucketStrings.length + 1];
@@ -59,10 +59,17 @@ public class ProfilerAPI
                 argBuckets[argBuckets.length - 1] = Long.MAX_VALUE;
                 buckets = argBuckets;
               }
-              catch (NumberFormatException ex)
+              else
               {
-                ex.printStackTrace();
+                long[] argBuckets = new long[2];
+                argBuckets[0] = Long.parseLong(arg);
+                argBuckets[argBuckets.length - 1] = Long.MAX_VALUE;
+                buckets = argBuckets;
               }
+            }
+            catch (NumberFormatException ex)
+            {
+              ex.printStackTrace();
             }
           }
           else if (arg.startsWith("include-"))
