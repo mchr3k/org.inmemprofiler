@@ -20,9 +20,10 @@ public class ProfilerData
   public Trace newObject(String className, 
                         long size, 
                         Trace trace, 
-                        String[] allocatingClassTargets)
+                        String[] traceTarget, 
+                        String[] traceIgnore)
   {
-    return liveObjects.addObject(className, size, trace, allocatingClassTargets);    
+    return liveObjects.addObject(className, size, trace, traceTarget, traceIgnore);    
   }
   
   /**
@@ -32,30 +33,31 @@ public class ProfilerData
    * @param size
    * @param trace
    * @param lifetime
-   * @param allocatingClassTargets 
+   * @param traceTarget 
+   * @param traceIgnore 
    */
   public synchronized void collectObject(String className, 
                                          long size, 
                                          Trace trace, 
                                          long lifetime, 
-                                         String[] allocatingClassTargets)
+                                         String[] traceTarget, 
+                                         String[] traceIgnore)
   {
-    liveObjects.removeObject(className, size, trace, allocatingClassTargets);
-    collectedObjects.collectObject(className, size, trace, lifetime, allocatingClassTargets);
+    liveObjects.removeObject(className, size, trace, traceTarget, traceIgnore);
+    collectedObjects.addObject(className, size, trace, lifetime, traceTarget, traceIgnore);
   }
   
   public synchronized void outputData(StringBuilder str,
                                       Formatter fmt, 
                                       long outputLimit,
                                       boolean traceAllocs, 
-                                      String[] traceClassFilter, 
                                       boolean trackCollection)
   {
     if (trackCollection)
     {
       str.append("Live objects:\n");
       BucketSummary summary = liveObjects.outputData(str, fmt, 1, outputLimit, 
-                                                     traceAllocs, traceClassFilter);      
+                                                     traceAllocs);      
       str.append("\n");
       str.append("Live objects summary:\n");
       Util.indent(str, 1);
@@ -65,12 +67,12 @@ public class ProfilerData
       str.append("\n\n");
       
       str.append("Collected objects:\n");
-      collectedObjects.outputData(str, fmt, 1, outputLimit, traceAllocs, traceClassFilter);
+      collectedObjects.outputData(str, fmt, 1, outputLimit, traceAllocs);
     }
     else
     {
       str.append("Allocated objects:\n");
-      liveObjects.outputData(str, fmt, 1, outputLimit, traceAllocs, traceClassFilter);
+      liveObjects.outputData(str, fmt, 1, outputLimit, traceAllocs);
     }
   }
 }

@@ -25,7 +25,8 @@ public class AllocatedClassData
   public synchronized Trace addObject(String className, 
                                       long size, 
                                       Trace trace, 
-                                      String[] allocatingClassTargets)
+                                      String[] traceTarget, 
+                                      String[] traceIgnore)
   { 
     this.count.incrementAndGet();
     this.size.addAndGet(size);
@@ -43,7 +44,8 @@ public class AllocatedClassData
       traceData.addObject(size);
       
       Map<String,Set<String>> perClassMethods = Trace.getPerClassMethods(trace, 
-                                                                   allocatingClassTargets);
+                                                                         traceTarget,
+                                                                         traceIgnore);
       for (Entry<String,Set<String>> element : perClassMethods.entrySet())
       {
         String allocatingClassName = element.getKey();
@@ -63,7 +65,8 @@ public class AllocatedClassData
   public synchronized void removeObject(String className, 
                                         long size, 
                                         Trace trace, 
-                                        String[] allocatingClassTargets)
+                                        String[] traceTarget, 
+                                        String[] traceIgnore)
   {
     this.count.decrementAndGet();
     this.size.addAndGet(-1 * size);
@@ -77,7 +80,8 @@ public class AllocatedClassData
       }    
       
       Map<String,Set<String>> perClassMethods = Trace.getPerClassMethods(trace,
-                                                                   allocatingClassTargets);
+                                                                         traceTarget,
+                                                                         traceIgnore);
       for (Entry<String,Set<String>> element : perClassMethods.entrySet())
       {
         String allocatingClassName = element.getKey();
@@ -96,7 +100,6 @@ public class AllocatedClassData
                                       int indent, 
                                       long outputLimit, 
                                       boolean traceAllocs, 
-                                      String[] traceClassFilter, 
                                       BucketSummary summary)
   {
     if (count.get() == 0)
@@ -166,28 +169,12 @@ public class AllocatedClassData
           break;
         }
         
-        if ((traceClassFilter == null) ||
-            passesFilter(classData.getKey(), traceClassFilter))
-        {
-          classData.getValue().outputData(classData.getKey(), str, fmt, indent + 2, outputLimit);        
-          outputCount++;
-        }
+        classData.getValue().outputData(classData.getKey(), str, fmt, indent + 2, outputLimit);        
+        outputCount++;
       }
       
       str.append("\n");
     }
-  }
-  
-  private boolean passesFilter(String key, String[] traceClassFilter)
-  {
-    for (String filter : traceClassFilter)
-    {
-      if (key.startsWith(filter))
-      {
-        return false;
-      }
-    }
-    return true;
   }
 
   @Override

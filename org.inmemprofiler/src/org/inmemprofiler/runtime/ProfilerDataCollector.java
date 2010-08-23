@@ -129,7 +129,7 @@ public class ProfilerDataCollector
     
     // Lifetime buckets
     ProfilerData lData = data;
-    trace = lData.newObject(className, size, trace, allocatingClassTargets);
+    trace = lData.newObject(className, size, trace, traceTarget, traceIgnore);
     
     if (trackCollection)
     {
@@ -147,7 +147,7 @@ public class ProfilerDataCollector
   public static void outputData(StringBuilder str)
   {
     data.outputData(str, new Formatter(str), outputLimit, traceAllocs, 
-                    traceClassFilter, trackCollection);
+                    trackCollection);
     FileOutput.writeOutput(str.toString());
   }
   
@@ -196,7 +196,7 @@ public class ProfilerDataCollector
 
           ref.data.collectObject(className, size, trace,
                                  instanceLifeTime / 1000,
-                                 allocatingClassTargets);
+                                 traceTarget, traceIgnore);
         }
       }
       catch (InterruptedException e)
@@ -315,8 +315,8 @@ public class ProfilerDataCollector
   // Profiling control code
   private static String[] classPrefixes;
   private static String[] excludeClassPrefixes;
-  private static String[] traceClassFilter;
-  private static String[] allocatingClassTargets;
+  private static String[] traceIgnore;
+  private static String[] traceTarget;
   private static boolean exactMatch;
   private static boolean trackCollection;  
 
@@ -332,8 +332,8 @@ public class ProfilerDataCollector
                                     boolean traceallocs, 
                                     boolean trackcollection, 
                                     boolean delayprofiling, 
-                                    String[] traceclassfilter, 
-                                    String[] allocatingclasstargets, 
+                                    String[] traceignore, 
+                                    String[] tracetarget, 
                                     String path, 
                                     String allArgs)
   {    
@@ -366,8 +366,8 @@ public class ProfilerDataCollector
     outputLimit = outputlimit;
     sampleEvery = sampleevery;
     traceAllocs = traceallocs;
-    traceClassFilter = traceclassfilter;
-    allocatingClassTargets = allocatingclasstargets;
+    traceIgnore = traceignore;
+    traceTarget = tracetarget;
     trackCollection = trackcollection;
 
     Thread[] workThreads = new Thread[4];

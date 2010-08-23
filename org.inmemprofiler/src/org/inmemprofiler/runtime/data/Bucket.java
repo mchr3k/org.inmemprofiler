@@ -17,14 +17,15 @@ public class Bucket
   private final Map<String, AllocatedClassData> perClassData = new ConcurrentHashMap<String, AllocatedClassData>(); 
   
   public Trace addObject(String className, long size, Trace trace, 
-                         String[] allocatingClassTargets)
+                         String[] traceTarget, 
+                         String[] traceIgnore)
   {
     AllocatedClassData classData = perClassData.get(className);
     if (classData == null)
     {
       classData = newClass(className);
     }
-    return classData.addObject(className, size, trace, allocatingClassTargets);
+    return classData.addObject(className, size, trace, traceTarget, traceIgnore);
   }
   
   private synchronized AllocatedClassData newClass(String className)
@@ -39,12 +40,12 @@ public class Bucket
   }
   
   public void removeObject(String className, long size, Trace trace, 
-                           String[] allocatingClassTargets)
+                           String[] traceTarget, String[] traceIgnore)
   {
     AllocatedClassData classData = perClassData.get(className);
     if (classData != null)
     {
-      classData.removeObject(className, size, trace, allocatingClassTargets);
+      classData.removeObject(className, size, trace, traceTarget, traceIgnore);
     }    
   }
   
@@ -55,14 +56,13 @@ public class Bucket
    * @param indent
    * @param outputLimit 
    * @param traceAllocs 
-   * @param traceClassFilter 
+   * @param traceIgnore 
    */
   public BucketSummary outputData(StringBuilder str,
                                   Formatter fmt,
                                   int indent, 
                                   long outputLimit, 
-                                  boolean traceAllocs, 
-                                  String[] traceClassFilter)
+                                  boolean traceAllocs)
   {    
     BucketSummary summary = new BucketSummary();
     
@@ -87,8 +87,8 @@ public class Bucket
       }
       
       classData.getValue().outputData(classData.getKey(), str, fmt, 
-                                      indent + 1, outputLimit, traceAllocs,
-                                      traceClassFilter, summary);
+                                      indent + 1, outputLimit, traceAllocs, 
+                                      summary);
       
       outputCount++;
     }

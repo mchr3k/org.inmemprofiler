@@ -26,15 +26,16 @@ public class BucketContainer
     }
   }
   
-  public void collectObject(String className, 
-                                         long size, 
-                                         Trace trace, 
-                                         long lifetime, 
-                                         String[] allocatingClassTargets)
+  public void addObject(String className, 
+                        long size, 
+                        Trace trace, 
+                        long lifetime, 
+                        String[] traceTarget, 
+                        String[] traceIgnore)
   {
     long bucketIndex = getBucketIndex(lifetime);
     Bucket bucket = collectedInstanceBuckets.get(bucketIndex);
-    bucket.addObject(className, size, trace, allocatingClassTargets);  
+    bucket.addObject(className, size, trace, traceTarget, traceIgnore);  
   }
 
   private long getBucketIndex(long instanceLifetime)
@@ -53,8 +54,7 @@ public class BucketContainer
                          Formatter fmt,
                          int indent, 
                          long outputLimit, 
-                         boolean traceAllocs, 
-                         String[] traceClassFilter)
+                         boolean traceAllocs)
   {   
     long lastLong = 0;
     BucketSummary[] summaries = new BucketSummary[bucketIntervals.length];
@@ -69,7 +69,7 @@ public class BucketContainer
       str.append("(s) :\n");
       
       Bucket bucket = collectedInstanceBuckets.get(bucketInterval);
-      summaries[ii] = bucket.outputData(str, fmt, indent + 1, outputLimit, traceAllocs, traceClassFilter);      
+      summaries[ii] = bucket.outputData(str, fmt, indent + 1, outputLimit, traceAllocs);      
       
       lastLong = bucketInterval;
     }    

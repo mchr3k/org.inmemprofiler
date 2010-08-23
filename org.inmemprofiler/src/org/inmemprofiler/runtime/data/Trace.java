@@ -125,13 +125,25 @@ public class Trace
   }
     
   public static Map<String,Set<String>> getPerClassMethods(Trace trace, 
-                                                           String[] allocatingClassTargets)
+                                                           String[] tarceTarget, 
+                                                           String[] traceIgnore)
   {
     Map<String,Set<String>> perClassMethods = new HashMap<String, Set<String>>(1);
     
     for (StackTraceElement element : trace.stackFrames)
     {
       String className = element.getClassName();
+      
+      if (traceIgnore != null)
+      {
+        for (String traceIgnoreClass : traceIgnore)
+        {
+          if (className.startsWith(traceIgnoreClass))
+          {
+            continue;
+          }
+        }
+      }
       
       Set<String> methods = perClassMethods.get(className);
       if (methods == null)
@@ -141,9 +153,9 @@ public class Trace
       }
       methods.add(element.getMethodName());
             
-      if (allocatingClassTargets != null)
+      if (tarceTarget != null)
       {
-        String matchingTarget = getMatchingTarget(className, allocatingClassTargets);
+        String matchingTarget = getMatchingTarget(className, tarceTarget);
         if (matchingTarget != null)
         {
           break;

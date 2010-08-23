@@ -20,8 +20,8 @@ public class ProfilerAPI
       long[] buckets = null;
       String[] prefixes = null;
       String[] excludePrefixes = null;
-      String[] traceClassFilter = null;
-      String[] allocatingClassTargets = null;
+      String[] traceIgnore = null;
+      String[] traceTarget = null;
       
       boolean exactmatch = false;
       boolean traceallocs = false;
@@ -98,30 +98,30 @@ public class ProfilerAPI
               excludePrefixes = new String[] {arg};
             }
           }
-          else if (arg.startsWith("traceclassfilter-"))
+          else if (arg.startsWith("traceignore-"))
           {
-            arg = arg.substring("traceclassfilter-".length());
+            arg = arg.substring("traceignore-".length());
             if (arg.indexOf(",") > -1)
             {
               String[] prefixStrings = arg.split(",");
-              traceClassFilter = prefixStrings;
+              traceIgnore = prefixStrings;
             }
             else
             {
-              traceClassFilter = new String[] {arg};
+              traceIgnore = new String[] {arg};
             }
           }
-          else if (arg.startsWith("allocatingclasstargets-"))
+          else if (arg.startsWith("tracetarget-"))
           {
-            arg = arg.substring("allocatingclasstargets-".length());
+            arg = arg.substring("tracetarget-".length());
             if (arg.indexOf(",") > -1)
             {
               String[] prefixStrings = arg.split(",");
-              allocatingClassTargets = prefixStrings;
+              traceTarget = prefixStrings;
             }
             else
             {
-              allocatingClassTargets = new String[] {arg};
+              traceTarget = new String[] {arg};
             }
           }          
           else if (arg.startsWith("gc-"))
@@ -245,8 +245,8 @@ public class ProfilerAPI
                                            traceallocs,
                                            trackcollection,
                                            delayprofiling,
-                                           traceClassFilter,
-                                           allocatingClassTargets,
+                                           traceIgnore,
+                                           traceTarget,
                                            path,
                                            allArgs);
       
