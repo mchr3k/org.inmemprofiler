@@ -25,7 +25,7 @@ public class ProfilerDataCollector
   private static ProfilerData data;
 
   // Maps for holding class names and creation times
-  private static final Map<LifetimeWeakReference, Object> weakRefSet = new ConcurrentHashMap<LifetimeWeakReference, Object>();
+  private static Map<LifetimeWeakReference, Object> weakRefSet = new ConcurrentHashMap<LifetimeWeakReference, Object>();
   private static final Object setValue = new Object();
 
   // Reference Q used for recording collection times
@@ -154,6 +154,7 @@ public class ProfilerDataCollector
   static void resetData()
   {
     data = new ProfilerData(data.bucketIntervals);
+    weakRefSet = new ConcurrentHashMap<LifetimeWeakReference, Object>();
     FileOutput.writeOutput("Instance data reset\n");
   }
 

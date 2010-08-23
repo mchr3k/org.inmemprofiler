@@ -136,12 +136,19 @@ public class Trace
       
       if (traceIgnore != null)
       {
+        boolean continueNow = false;
         for (String traceIgnoreClass : traceIgnore)
         {
           if (className.startsWith(traceIgnoreClass))
           {
-            continue;
+            continueNow = true;
+            break;
           }
+        }
+        
+        if (continueNow)
+        {
+          continue;
         }
       }
       
