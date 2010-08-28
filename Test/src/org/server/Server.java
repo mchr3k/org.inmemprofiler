@@ -1,21 +1,24 @@
 package org.server;
 
 import org.logging.Logger;
-import org.yourorg.AppCode;
+
+import com.yourorg.app.App;
 
 public class Server
 {
-  public static void main(String[] args) {
-    ServerThread.handleRequests();
+  public static void main(String[] args) throws InterruptedException {
+    Thread t = new Thread(new ServerThread());
+    t.start();
+    t.join();
   }  
   
-  public static class ServerThread
+  public static class ServerThread implements Runnable
   {
-    public static void handleRequests() {
-      while (true) {
+    public void run() {
+      for (int ii = 0; ii < 100; ii++) {
         Request req = Request.getNextRequest();
         Logger.log("Time: " + System.currentTimeMillis() + ", pass req to app!");
-        AppCode.handleRequest(req);
+        App.handleRequest(req);
       }
     }
   }
