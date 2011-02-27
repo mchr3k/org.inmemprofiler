@@ -16,6 +16,7 @@ import org.inmemprofiler.runtime.util.Util;
 
 public class AllocatedClassData
 {
+  public final AtomicLong largest = new AtomicLong();
   public final AtomicLong count = new AtomicLong();
   public final AtomicLong size = new AtomicLong();
   private final Map<Trace, AllocatingTraceData> traces = new ConcurrentHashMap<Trace, AllocatingTraceData>();
@@ -28,6 +29,11 @@ public class AllocatedClassData
                                       String[] traceTarget, 
                                       String[] traceIgnore)
   { 
+    if (this.largest.get() < size)
+    {
+      this.largest.set(size);
+    }
+    
     this.count.incrementAndGet();
     this.size.addAndGet(size);
     
@@ -100,7 +106,8 @@ public class AllocatedClassData
                                       int indent, 
                                       long outputLimit, 
                                       boolean traceAllocs, 
-                                      BucketSummary summary)
+                                      BucketSummary summary, 
+                                      boolean outputLargest)
   {
     if (count.get() == 0)
     {
@@ -111,6 +118,12 @@ public class AllocatedClassData
     str.append(size.get());
     str.append(":");
     str.append(count.get());
+    if (outputLargest)
+    {
+      str.append(":(");
+      str.append(largest.get());
+      str.append(")");
+    }
     str.append(" - ");
     str.append(className);
     str.append("\n");

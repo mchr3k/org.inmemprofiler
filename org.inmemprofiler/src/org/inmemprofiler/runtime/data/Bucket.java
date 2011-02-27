@@ -56,13 +56,15 @@ public class Bucket
    * @param indent
    * @param outputLimit 
    * @param traceAllocs 
+   * @param outputLargest TODO
    * @param traceIgnore 
    */
   public BucketSummary outputData(StringBuilder str,
                                   Formatter fmt,
                                   int indent, 
                                   long outputLimit, 
-                                  boolean traceAllocs)
+                                  boolean traceAllocs, 
+                                  boolean outputLargest)
   {    
     BucketSummary summary = new BucketSummary();
     
@@ -88,7 +90,7 @@ public class Bucket
       
       classData.getValue().outputData(classData.getKey(), str, fmt, 
                                       indent + 1, outputLimit, traceAllocs, 
-                                      summary);
+                                      summary, outputLargest);
       
       outputCount++;
     }

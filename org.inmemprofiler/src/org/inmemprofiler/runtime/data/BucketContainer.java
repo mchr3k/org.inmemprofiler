@@ -69,7 +69,7 @@ public class BucketContainer
       str.append("(s) :\n");
       
       Bucket bucket = collectedInstanceBuckets.get(bucketInterval);
-      summaries[ii] = bucket.outputData(str, fmt, indent + 1, outputLimit, traceAllocs);      
+      summaries[ii] = bucket.outputData(str, fmt, indent + 1, outputLimit, traceAllocs, true);      
       
       lastLong = bucketInterval;
     }    

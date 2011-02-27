@@ -34,6 +34,7 @@ public class ProfilerDataCollector
   // Limit amount of output data
   private static long outputLimit = Integer.MAX_VALUE;
   private static long sampleEvery = 1;
+  private static long largerThan = -1;
   private static AtomicLong sampleCount = new AtomicLong(0);
   private static boolean traceAllocs = false;
 
@@ -112,15 +113,16 @@ public class ProfilerDataCollector
     long sampleIndex = sampleCount.incrementAndGet();
     if ((sampleIndex % sampleEvery) > 0)
     {
-      earlyReturn = true;
-    }
-    
-    if (earlyReturn)
-    {
       return;
     }
 
     long size = ObjectSizer.getObjectSize(ref);
+        
+    if ((largerThan > -1) && (size < largerThan))
+    {
+      return;
+    }
+    
     Trace trace = null;
     if (traceAllocs)
     {
@@ -329,14 +331,14 @@ public class ProfilerDataCollector
                                     long periodicInterval,
                                     long outputlimit, 
                                     long sampleevery, 
+                                    long largerthan, 
                                     long numResets, 
                                     boolean traceallocs, 
                                     boolean trackcollection, 
                                     boolean delayprofiling, 
                                     String[] traceignore, 
                                     String[] tracetarget, 
-                                    String path, 
-                                    String allArgs)
+                                    String path, String allArgs)
   {    
     if (path == null)
     {
@@ -366,6 +368,7 @@ public class ProfilerDataCollector
     exactMatch = exactmatch;
     outputLimit = outputlimit;
     sampleEvery = sampleevery;
+    largerThan = largerthan;
     traceAllocs = traceallocs;
     traceIgnore = traceignore;
     traceTarget = tracetarget;

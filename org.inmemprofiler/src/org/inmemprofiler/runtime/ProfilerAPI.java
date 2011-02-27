@@ -33,6 +33,7 @@ public class ProfilerAPI
       long outputLimit = Integer.MAX_VALUE;
       long sampleEvery = 1;
       long numResets = 0;
+      long largerThan = -1;
       
       String path = null;      
       
@@ -171,7 +172,23 @@ public class ProfilerAPI
             {
               ex.printStackTrace();
             }
-          }          
+          }
+          else if (arg.startsWith("largerthan-"))
+          {
+            arg = arg.substring("largerthan-".length());
+            try
+            {
+              long argVal = Long.parseLong(arg);
+              if (argVal > 0)
+              {
+                largerThan = argVal;
+              }
+            }
+            catch (NumberFormatException ex)
+            {
+              ex.printStackTrace();
+            }
+          }
           else if (arg.startsWith("periodic-"))
           {
             arg = arg.substring("periodic-".length());
@@ -241,14 +258,14 @@ public class ProfilerAPI
                                            periodicInterval,
                                            outputLimit,
                                            sampleEvery,
+                                           largerThan,
                                            numResets,
                                            traceallocs,
                                            trackcollection,
                                            delayprofiling,
                                            traceIgnore,
                                            traceTarget,
-                                           path,
-                                           allArgs);
+                                           path, allArgs);
       
       parsedArgs = true;
     }

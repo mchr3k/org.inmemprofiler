@@ -57,7 +57,7 @@ public class ProfilerData
     {
       str.append("Live objects:\n");
       BucketSummary summary = liveObjects.outputData(str, fmt, 1, outputLimit, 
-                                                     traceAllocs);      
+                                                     traceAllocs, false);      
       str.append("\n");
       str.append("Live objects summary:\n");
       Util.indent(str, 1);
@@ -72,7 +72,7 @@ public class ProfilerData
     else
     {
       str.append("Allocated objects:\n");
-      liveObjects.outputData(str, fmt, 1, outputLimit, traceAllocs);
+      liveObjects.outputData(str, fmt, 1, outputLimit, traceAllocs, true);
     }
   }
 }
