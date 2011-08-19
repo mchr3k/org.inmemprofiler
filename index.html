@@ -1,77 +1,368 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset='utf-8'>
+---
+layout: default
+title: Home
+---
+<h2>Home</h2>
 
-  <title>mchr3k/org.inmemprofiler @ GitHub</title>
+<p>InMemProfiler is a tool for tracking the allocation and lifetime of 
+Java objects.
 
-  <style type="text/css">
-    body {
-      margin-top: 1.0em;
-      background-color: #7589b3;
-      font-family: Helvetica, Arial, FreeSans, san-serif;
-      color: #000000;
+<p>Download (see below for how to use these files):
+<ul>
+<li><a href="http://github.com/mchr3k/org.inmemprofiler/raw/master/binaries/jars/latest_release/inmemprofiler.jar">inmemprofiler.jar</a>
+<li><a href="http://github.com/mchr3k/org.inmemprofiler/raw/master/binaries/jars/latest_release/inmemprofiler.dll">inmemprofiler.dll</a> (32 bit windows)
+<li><a href="http://github.com/mchr3k/org.inmemprofiler/raw/master/binaries/jars/latest_release/libinmemprofiler.so">libinmemprofiler.so</a> (32 bit linux)
+</ul>
+
+<h3>The Problem</h3>
+
+<p>Java makes it really easy to write code which allocates a lot of short lived 
+memory (e.g. String concatenation) or to use memory structures which are larger 
+than you might expect (e.g. Vectors). 
+
+<h3>The Solution</h3>
+
+<p>This tool aims to answer the following questions.
+
+<ul>
+<li>How many instances of a class are being allocated?
+<li>What are the most common stack traces of these allocations?
+<li>How long do these instances live?
+<li>What class is responsible for their allocation?
+</ul>
+
+<p>Here is some example output from the tool.
+
+<pre>
+Live objects:
+  56:1 - [Ljava.lang.Object;
+  24:1 - java.util.ArrayList
+
+Live objects summary:
+  80:2
+
+Collected objects:
+  0(s) - 5(s) :
+    440:6 - [Ljava.lang.Object;
+    24:1 - java.util.ArrayList
+    8:1 - other.test.TestObject
+  5(s) - 15(s) :
+    80:10 - other.test.TestObject
+    56:1 - [Ljava.lang.Object;
+    24:1 - java.util.ArrayList
+  15(s) - 25(s) :
+    160:20 - other.test.TestObject
+    112:1 - [Ljava.lang.Object;
+    24:1 - java.util.ArrayList
+  25(s) - 35(s) :
+    240:30 - other.test.TestObject
+    168:1 - [Ljava.lang.Object;
+    24:1 - java.util.ArrayList
+  35(s) - 45(s) :
+  45(s) - 55(s) :
+  55(s) - inf(s) :
+
+  Buckets summary:
+    472:8 - 0(s) - 5(s)
+    160:12 - 5(s) - 15(s)
+    296:22 - 15(s) - 25(s)
+    432:32 - 25(s) - 35(s)
+    0:0 - 35(s) - 45(s)
+    0:0 - 45(s) - 55(s)
+    0:0 - 55(s) - inf(s)
+</pre>
+
+<p>This output is generated from the following test program:
+
+<pre class="prettyprint lang-java">
+package test;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import other.test.TestObject;
+
+public class Test
+{
+  public static void main(String[] args) throws Exception
+  {
+    // Allocate 30 objects
+    List<TestObject> round1 = allocateObjects(30);
+    Thread.sleep(10 * 1000);
+
+    // Allocate 20 objects
+    List<TestObject> round2 = allocateObjects(20);
+    Thread.sleep(10 * 1000);
+
+    // Allocate 10 objects
+    List<TestObject> round3 = allocateObjects(10);
+    Thread.sleep(10 * 1000);
+
+    // Allocate 1 object, discarding 30 which are 30 seconds old
+    round1 = allocateObjects(1);
+    System.out.println(round1);
+
+    // Discard 1 object which is 0 seconds old
+    round1 = null;
+    System.out.println(round2);
+
+    // Discard 20 objects which are 20 seconds old
+    round2 = null;
+    System.out.println(round3);
+
+    // Discard 30 objects which are 30 seconds old
+    round3 = null;
+    Thread.sleep(6 * 1000);
+    System.out.println("===");
+  }
+
+  private static List<TestObject> allocateObjects(int len)
+  {
+    List<TestObject> list = new ArrayList<TestObject>();
+    for (int ii = 0; ii < len; ii++)
+    {
+      list.add(new TestObject());
     }
-    #container {
-      margin: 0 auto;
-      width: 700px;
-    }
-    h1 { font-size: 3.8em; color: #8a764c; margin-bottom: 3px; }
-    h1 .small { font-size: 0.4em; }
-    h1 a { text-decoration: none }
-    h2 { font-size: 1.5em; color: #8a764c; }
-    h3 { text-align: center; color: #8a764c; }
-    a { color: #8a764c; }
-    .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
-    .download { float: right; }
-    pre { background: #000; color: #fff; padding: 15px;}
-    hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
-    .footer { text-align:center; padding-top:30px; font-style: italic; }
-  </style>
-</head>
+    return list;
+  }
+}
+</pre>
 
-<body>
-  <a href="http://github.com/mchr3k/org.inmemprofiler"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+<p>Note: The extra ArrayList instance alive at the end of this code is created by a JVM system class. This will become clearer below.
 
-  <div id="container">
+<p>This output is made possible by adding the following arguments to the JVM used to run this program.
 
-    <div class="download">
-      <a href="http://github.com/mchr3k/org.inmemprofiler/zipball/master">
-        <img border="0" width="90" src="http://github.com/images/modules/download/zip.png"></a>
-      <a href="http://github.com/mchr3k/org.inmemprofiler/tarball/master">
-        <img border="0" width="90" src="http://github.com/images/modules/download/tar.png"></a>
-    </div>
+<pre>-Xbootclasspath/a:./inmemprofiler.jar -agentpath:./inmemprofiler.dll=#bucket-5,15,25,35,45,55#gc-1#include-other,[Ljava.lang.Object,java.util.ArrayList#trackcollection</pre>
 
-    <h1><a href="http://github.com/mchr3k/org.inmemprofiler">org.inmemprofiler</a>
-      <span class="small">by <a href="http://github.com/mchr3k">mchr3k</a></span></h1>
+<p>To find out more about the source of these objects you can use the #trace option to generate the following output:
 
-    <div class="description">
-      Instrumentation based Memory Profiler
-    </div>
+<pre>
+Live objects:
+  56:1 - [Ljava.lang.Object;
 
-    <h2>Authors</h2>
-<p>Martin (mchr3k@gmail.com)<br/>Martin Hare Robertson (mchr3k@googlemail.com)<br/><br/>      </p>
-<h2>Contact</h2>
-<p> (mchr3k@googlemail.com)<br/>      </p>
+    Allocation Sites:
+      56:1
+        java.util.ArrayList.<init>(ArrayList.java)
+        java.util.ArrayList.<init>(ArrayList.java)
+        java.io.FilePermissionCollection.<init>(FilePermission.java)
+        java.io.FilePermission.newPermissionCollection(FilePermission.java)
+        java.security.Permissions.getPermissionCollection(Permissions.java)
+        java.security.Permissions.add(Permissions.java)
+        java.net.URLClassLoader.getPermissions(URLClassLoader.java)
+        sun.misc.Launcher$AppClassLoader.getPermissions(Launcher.java)
+        java.security.SecureClassLoader.getProtectionDomain(SecureClassLoader.java)
+        java.security.SecureClassLoader.defineClass(SecureClassLoader.java)
+        java.net.URLClassLoader.defineClass(URLClassLoader.java)
+        java.net.URLClassLoader.access$000(URLClassLoader.java)
+        java.net.URLClassLoader$1.run(URLClassLoader.java)
+        java.security.AccessController.doPrivileged(AccessController.java)
+        java.net.URLClassLoader.findClass(URLClassLoader.java)
+        java.lang.ClassLoader.loadClass(ClassLoader.java)
+        sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java)
+        java.lang.ClassLoader.loadClass(ClassLoader.java)
+
+    Allocation Classes:
+      java.security.Permissions
+        56:1 - All methods
+          56:1 - add
+          56:1 - getPermissionCollection
+      java.security.SecureClassLoader
+        56:1 - All methods
+          56:1 - getProtectionDomain
+          56:1 - defineClass
+      sun.misc.Launcher$AppClassLoader
+        56:1 - All methods
+          56:1 - loadClass
+          56:1 - getPermissions
+      java.io.FilePermission
+        56:1 - All methods
+          56:1 - newPermissionCollection
+      java.lang.ClassLoader
+        56:1 - All methods
+          56:1 - loadClass
+      java.net.URLClassLoader
+        56:1 - All methods
+          56:1 - access$000
+          56:1 - findClass
+          56:1 - defineClass
+          56:1 - getPermissions
+      java.util.ArrayList
+        56:1 - All methods
+          56:1 - <init>
+          0:0 - add
+          0:0 - ensureCapacity
+      java.security.AccessController
+        56:1 - All methods
+          56:1 - doPrivileged
+      java.net.URLClassLoader$1
+        56:1 - All methods
+          56:1 - run
+      java.io.FilePermissionCollection
+        56:1 - All methods
+          56:1 - <init>
+
+  24:1 - java.util.ArrayList
+
+    Allocation Sites:
+      24:1
+        java.util.ArrayList.<init>(ArrayList.java)
+        java.io.FilePermissionCollection.<init>(FilePermission.java)
+        java.io.FilePermission.newPermissionCollection(FilePermission.java)
+        java.security.Permissions.getPermissionCollection(Permissions.java)
+        java.security.Permissions.add(Permissions.java)
+        java.net.URLClassLoader.getPermissions(URLClassLoader.java)
+        sun.misc.Launcher$AppClassLoader.getPermissions(Launcher.java)
+        java.security.SecureClassLoader.getProtectionDomain(SecureClassLoader.java)
+        java.security.SecureClassLoader.defineClass(SecureClassLoader.java)
+        java.net.URLClassLoader.defineClass(URLClassLoader.java)
+        java.net.URLClassLoader.access$000(URLClassLoader.java)
+        java.net.URLClassLoader$1.run(URLClassLoader.java)
+        java.security.AccessController.doPrivileged(AccessController.java)
+        java.net.URLClassLoader.findClass(URLClassLoader.java)
+        java.lang.ClassLoader.loadClass(ClassLoader.java)
+        sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java)
+        java.lang.ClassLoader.loadClass(ClassLoader.java)
+
+    Allocation Classes:
+      java.security.Permissions
+        24:1 - All methods
+          24:1 - add
+          24:1 - getPermissionCollection
+      java.security.SecureClassLoader
+        24:1 - All methods
+          24:1 - getProtectionDomain
+          24:1 - defineClass
+      sun.misc.Launcher$AppClassLoader
+        24:1 - All methods
+          24:1 - loadClass
+          24:1 - getPermissions
+      java.io.FilePermission
+        24:1 - All methods
+          24:1 - newPermissionCollection
+      java.lang.ClassLoader
+        24:1 - All methods
+          24:1 - loadClass
+      java.net.URLClassLoader
+        24:1 - All methods
+          24:1 - access$000
+          24:1 - findClass
+          24:1 - defineClass
+          24:1 - getPermissions
+      java.util.ArrayList
+        24:1 - All methods
+          24:1 - <init>
+      java.security.AccessController
+        24:1 - All methods
+          24:1 - doPrivileged
+      java.net.URLClassLoader$1
+        24:1 - All methods
+          24:1 - run
+      java.io.FilePermissionCollection
+        24:1 - All methods
+          24:1 - <init>
 
 
-    <h2>Download</h2>
-    <p>
-      You can download this project in either
-      <a href="http://github.com/mchr3k/org.inmemprofiler/zipball/master">zip</a> or
-      <a href="http://github.com/mchr3k/org.inmemprofiler/tarball/master">tar</a> formats.
-    </p>
-    <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
-      by running:
-      <pre>$ git clone git://github.com/mchr3k/org.inmemprofiler</pre>
-    </p>
+Live objects summary:
+  80:2
 
-    <div class="footer">
-      get the source code on GitHub : <a href="http://github.com/mchr3k/org.inmemprofiler">mchr3k/org.inmemprofiler</a>
-    </div>
+Collected objects:
+  0(s) - 60(s) :
+    776:9 - [Ljava.lang.Object;
 
-  </div>
+      Allocation Sites:
+        552:5
+          java.util.Arrays.copyOf(Arrays.java)
+          java.util.Arrays.copyOf(Arrays.java)
+          java.util.ArrayList.ensureCapacity(ArrayList.java)
+          java.util.ArrayList.add(ArrayList.java)
+          test.Test.allocateObjects(Test.java)
+          test.Test.main(Test.java)
+        224:4
+          java.util.ArrayList.<init>(ArrayList.java)
+          java.util.ArrayList.<init>(ArrayList.java)
+          test.Test.allocateObjects(Test.java)
+          test.Test.main(Test.java)
 
-  
-</body>
-</html>
+      Allocation Classes:
+        java.util.ArrayList
+          776:9 - All methods
+            552:5 - add
+            552:5 - ensureCapacity
+            224:4 - <init>
+        test.Test
+          776:9 - All methods
+            776:9 - allocateObjects
+            776:9 - main
+        java.util.Arrays
+          552:5 - All methods
+            552:5 - copyOf
+
+    488:61 - other.test.TestObject
+
+      Allocation Sites:
+        488:61
+          test.Test.allocateObjects(Test.java)
+          test.Test.main(Test.java)
+
+      Allocation Classes:
+        test.Test
+          488:61 - All methods
+            488:61 - allocateObjects
+            488:61 - main
+
+    96:4 - java.util.ArrayList
+
+      Allocation Sites:
+        96:4
+          java.util.ArrayList.<init>(ArrayList.java)
+          test.Test.allocateObjects(Test.java)
+          test.Test.main(Test.java)
+
+      Allocation Classes:
+        java.util.ArrayList
+          96:4 - All methods
+            96:4 - <init>
+        test.Test
+          96:4 - All methods
+            96:4 - allocateObjects
+            96:4 - main
+
+  60(s) - inf(s) :
+
+  Buckets summary:
+    1360:74 - 0(s) - 60(s)
+    0:0 - 60(s) - inf(s)
+</pre>
+`
+<p>This was generated with the following set of options:
+
+<pre>-Xbootclasspath/a:./inmemprofiler.jar -agentpath:./inmemprofiler.dll=#bucket-60#gc-1#include-other,[Ljava.lang.Object,java.util.ArrayList#trackcollection#trace</pre>
+
+<p>This output clearly shows that the extra ArrayList instance and corresponding Object[] comes 
+from a call to URLClassLoader.getPermissions during classloading.
+
+<h3>Usage</h3>
+
+<p>To use this tool you should download the following two files (select the appropriate dll or so file) into your application’s working directory:
+
+<ul>
+<li>InMemProfile jar
+<li>InMemProfile dll
+<li>InMemProfile so
+</ul>
+
+<p>You then need to add the following arguments to your java command.
+
+<h4>Windows</h4>
+
+<pre>-Xbootclasspath/a:./inmemprofiler.jar -agentpath:./inmemprofiler.dll</pre>
+
+<h4>Linux</h4>
+
+<pre>-Xbootclasspath/a:./inmemprofiler.jar -agentpath:./libinmemprofiler.so</pre>
+
+<p>You can specify arguments to the agent in string form e.g.
+
+<pre>-Xbootclasspath/a:./inmemprofiler.jar -agentpath:./inmemprofiler.dll=#bucket-5,15,25,35,45,55#include-other,java.util.ArrayList#gc-1</pre>
+
+<p>The full list of options is described on the Profiler Options page.
