@@ -1,5 +1,53 @@
 ---
 layout: default
-title: Home
+title: Release Notes
 ---
-<h2>Home</h2>
+<h2>Release Notes</h2>
+
+<ul>
+<li><a href="http://github.com/mchr3k/org.inmemprofiler/tree/master/binaries/jars/latest_release/">Latest Release</a>
+<li><a href="http://github.com/mchr3k/org.inmemprofiler/tree/master/binaries/jars/release_5/">Release 5</a>
+<li><a href="http://github.com/mchr3k/org.inmemprofiler/tree/master/binaries/jars/release_4/">Release 4</a>
+<li><a href="http://github.com/mchr3k/org.inmemprofiler/tree/master/binaries/jars/release_3/">Release 3</a>
+<li><a href="http://github.com/mchr3k/org.inmemprofiler/tree/master/binaries/jars/release_2/">Release 2</a>
+<li><a href="http://github.com/mchr3k/org.inmemprofiler/tree/master/binaries/jars/release_1/">Release 1</a>
+<li><a href="http://github.com/mchr3k/org.inmemprofiler/tree/master/binaries/jars/latest_development/">Latest Development Build</a>
+</ul>
+
+<h2>Release 5 (27/02/2011)</h2>
+
+<ul>
+<li>Track objects #largerthan a particular size
+</ul>
+
+<h2>Release 4 (28/08/2010)</h2>
+
+<ul>
+<li>Track allocation sites
+<li>Identify significant stackframe classes
+</ul>
+
+<h2>Release 3 (16/08/2010)</h2>
+
+<ul>
+<li>Fix bug which tracked allocations made when producing output from a call to Profiler.outputData()
+</ul>
+
+<h2>Release 2 (13/08/2010)</h2>
+
+<ul>
+<li>Fix bug in argument parsing
+<li>Add JSP control pages
+<li>Add #exactmatch argument
+</ul>
+
+<h2>Release 1 (07/08/2010)</h2>
+
+<ul>
+<li>Initial release
+<li>Exclusion prefixes
+<li>Single line of output when the agent starts up
+<li>Reduce memory overheads – store classname and creation time in weakref subclass, still need a single map
+<li>Add programmatic API for begin, writeoutput and reset
+<li>Use agent to instrument all array allocations at point of allocation
+</ul>
