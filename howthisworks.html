@@ -1,5 +1,77 @@
 ---
 layout: default
-title: Home
+title: How This Works
 ---
-<h2>Home</h2>
+<h2>How This Works</h2>
+
+<p>This project was motivated by the need to find out the distribution of object lifetimes within an application I was working with.
+Object constructor instrumentation and Array allocation instrumentation
+
+<p>The JVMTI agent instruments the java.lang.Object constructor to add a call to a Profiling class:
+
+<pre class="prettyprint lang-java">
+public Object()
+{
+  ObjectProfiler.newObject(this);
+}
+</pre>
+
+<p>The JVMTI agent instruments all loaded classes to add a call to a Profiling class after every Array allocation:
+
+<pre class="prettyprint lang-java">
+byte[] array = new byte[12];
+ObjectProfiler.newObject(array);
+</pre>
+
+<h3>Bootclasspath</h3>
+
+<p>When the target application is launched we add an argument to the JVM to append the InMemProfiler jar to the 
+boot class path. This ensures the Profiler class is visible from classes loaded by the boot classloader.
+
+<pre>
+-Xbootclasspath/a:./inmemprofiler.jar
+</pre>
+
+<h3>Agent</h3>
+
+<p>Finally, the platform specific JVM TI agent binary is specified.
+
+<p>Windows:
+
+<pre>-agentpath:./inmemprofiler.dll=#bucket-5,15,25,35,45,55#include-other,java.util.ArrayList#gc-1</pre>
+
+<p>Linux
+
+<pre>-agentpath:./libinmemprofiler.so=#bucket-5,15,25,35,45,55#include-other,java.util.ArrayList#gc-1</pre>
+
+<p>This also gives us a chance to pass some arguments to the Profiler code. See the Profiler Options page for a full description of the allowed options.
+
+<h3>Runtime Data Collection</h3>
+
+<p>Every time the ObjectProfiler.newObject(object) method is called, InMemProfiler collects data about the 
+allocation. The size of the object is queried and is added to the current total allocation size for the 
+allocated class. The total allocation count for the class is also incremented.
+
+<p>When #trackcollections is specified, WeakReferences are used to detect when an allocation is collected. At 
+this point the previously tracked data is removed from the live objects bucket and added to an object lifetime 
+specific bucket (e.g. objects which lived 0 – 30 secs).
+
+<p>When #trace is specified a stacktrace is taken at allocation time and added to the per class collected 
+data. This is used to show which stack traces allocated the most data. The stacktrace is also parsed to allow 
+the allocation to be assigned to each class in the stacktrace. This allows a summary of the allocating objects 
+to be constructed:
+
+<pre>
+    488:61 - other.test.TestObject
+
+      Allocation Sites:
+        488:61
+          test.Test.allocateObjects(Test.java)
+          test.Test.main(Test.java)
+
+      Allocation Classes:
+        test.Test
+          488:61 - All methods
+            488:61 - allocateObjects
+            488:61 - main
+</pre>
