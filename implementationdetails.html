@@ -26,7 +26,7 @@ title: Implementation Details
 
 <p>Unfortunately the JVMPI was disabled in Java 6 and is set to be removed in Java 7 (details).
 
-<h3>Instrumentation API</h3>
+<h4>Instrumentation API</h4>
 
 <p>The Instrumentation API looks like an ideal candidate for inserting profiling code. However, there are a few reasons why this 
 isn’t as simple as it seems.
@@ -61,7 +61,7 @@ to allocated instances and tracking these using a ReferenceQueue
 to track instance allocations but performing this tracking involves allocating some instances. Getting 
 this recursion wrong in the JVM is not pretty.
 
-<h4>Errors
+<h4>Errors</h4>
 
 <p>In cases where I enabled the profiling code “too early” I saw the following output.
 
