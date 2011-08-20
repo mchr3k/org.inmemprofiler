@@ -1,5 +1,56 @@
 ---
 layout: default
-title: Home
+title: Profiler Arguments
 ---
-<h2>Home</h2>
+<h2>Profiler Arguments</h2>
+
+<p>This page gives a complete description of the options which can be used with InMemProfiler.
+
+<ul>
+<li>#bucket-5,10,15 – Set the instance lifetime bucket intervals. The numbers are in seconds and the list 
+must be in ascending order. This example would result in 4 buckets:
+<ul>
+<li>0 – 5: Instances which lived less than 5 seconds
+<li>5 – 10: Instances which lived between 5 and 10 seconds
+<li>10 – 15: Instances which lived between 10 and 15 seconds
+<li>15 – inf: Instances which lived longer than 15 seconds
+</ul>
+<li>#include-other,java.util.ArrayList – Comma separated list of allowed class name prefixes. These allows 
+the instrumentation to be restricted to instances of a particular class or classes in a package.
+<li>#exclude-java.util.HashMap – Comma separated list of excludes class name prefixes. These allows the 
+instrumentation to ignore instances of a particular class or classes in a package.
+<li>#exactmatch – This argument changes the behaviour of #include and #exclude to only allow classes which 
+exactly match the provided names.
+<li>#gc-1 – The reported lifetime depends on the time at which the instances are collected rather than the time 
+that they became garbage. This means the reported lifetime is always an overestimate. Using this argument enables a 
+thread which calls System.gc() regularly. In this example System.gc() will be called every second.
+<li>#periodic-5,1 – The frequency at which a summary should be output. A summary is always output at JVM shutdown but 
+this will not work if the JVM process is forced to terminate. The second number is optional and if present, determines 
+a number of times that the collected data will be reset after output. A negative number will cause the results to be 
+reset every time. Examples:
+<ul>
+<li>#periodic-5 – Output every 5 seconds
+<li>#periodic-5,-1 – Output every 5 seconds and reset the collected data every time
+<li>#periodic-5,3 – Output every 5 seconds and reset the collected data the first 3 times
+</ul>
+<li>#output-/tmp/ – The location in which the inmemprofiler.log file should be written. This defaults to the current working directory.
+<li>#trackcollection – Enables the tracking of when objects are collected.
+<li>#trace – Enables the tracking of allocation sites. Enabling this option at the same time as #trackcollection will 
+result in a very high per object memory overhead. See #every below for a way to alleviate this.
+<li>#every-10 – This option allows InMemProfiler to only examine every n’th object.
+<li>#largerthan-100 – This option allows InMemProfiler to only examine objects which are strictly larger than 100 bytes in size.
+<li>#outputlimit-5 – This limits the number of “Allocation Sites” and “Allocations Classes” output to 5.
+<li>#delayprofiling – This disables InMemProfiler profiling until 
+<a href="http://github.com/mchr3k/org.inmemprofiler/blob/master/org.inmemprofiler/src/org/inmemprofiler/runtime/ProfilerAPI.java">ProfilerAPI</a> 
+beginPausedProfiling() is called. This can be done using one of the <a href="jspcontrolpages.html">JSP Control Pages</a>
+<li>#traceignore-org.apache.tomcat,org.apache.axis2 – This allows you to specify class prefixes/packages which should be 
+ignored when constructing the “Allocation Classes summary”. This is useful for ignoring common library classes found at 
+the bottom of several stack traces and common runner classes (e.g. java.lang.Thread) which are commonly found at the top of stack traces.
+<li>#tracetarget-com.yourorg.package – This specifies the components which you are most interested in fingering as the 
+source of memory allocations. When InMemProfiler is looking through a stacktrace to construct the “Allocation Classes summary” it 
+will stop as soon as it finds a frame with a classname starting with one of the entries in #allocatingclasstargets. For more 
+information about why this is useful refer to the article 
+<a href="https://github.com/mchr3k/org.inmemprofiler/wiki/Identifying-Memory-Allocators">Identifying Memory Allocators</a>.
+</ul>
+
+
