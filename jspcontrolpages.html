@@ -2,4 +2,20 @@
 layout: default
 title: Home
 ---
-<h2>Home</h2>
+<h2>JSP Control Pages</h2>
+
+<p>InMemProfiler includes a very simple Java API to allow programs which are using it to explicitly 
+request that the instance data be reset or the current instance data be written out to file. This 
+API can be seen <a href="http://github.com/mchr3k/org.inmemprofiler/blob/master/org.inmemprofiler/src/org/inmemprofiler/runtime/ProfilerAPI.java">here</a>.
+
+<p>When InMemProfiler is being used in a webserver environment (e.g. Tomcat) this API can be used with 
+the help of a couple of JSP files:
+
+<ul>
+<li><a href="http://github.com/mchr3k/org.inmemprofiler/raw/master/org.inmemprofiler/jsp/inmem_output.jsp">inmem_output.jsp</a>
+<li><a herf="http://github.com/mchr3k/org.inmemprofiler/raw/master/org.inmemprofiler/jsp/inmem_reset.jsp">inmem_reset.jsp</a>
+<li><a herf="http://github.com/mchr3k/org.inmemprofiler/raw/master/org.inmemprofiler/jsp/inmem_start.jsp">inmem_start.jsp</a>
+<li><a herf="http://github.com/mchr3k/org.inmemprofiler/raw/master/org.inmemprofiler/jsp/inmem_pause.jsp">inmem_pause.jsp</a>
+</ul>
+
+<p>These files can be dropped onto any JSP enabled webserver.
