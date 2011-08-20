@@ -1,5 +1,119 @@
 ---
 layout: default
-title: Home
+title: Implementation Details
 ---
-<h2>Home</h2>
+<h2>Implementation Details</h2>
+
+<p>The purpose of this tool is to track the lifetime of object instances. At its core this means finding a way to detect the following two events.
+
+<ul>
+<li>Instance allocation
+<li>Instance garbage collection
+</ul>
+
+<h3>API Choice</h3>
+
+<p>The Sun JVM exposes a number of interfaces which I considered for this purpose.
+
+<h4>JVMPI</h4>
+
+<p>The JVM Profiler Interface is a good candidate and it even includes the following two interfaces which look ideal.
+
+<ul>
+<li>JVMPI_EVENT_OBJECT_ALLOC
+<li>JVMPI_EVENT_OBJECT_FREE
+</ul>
+
+<p>Unfortunately the JVMPI was disabled in Java 6 and is set to be removed in Java 7 (details).
+
+<h3>Instrumentation API</h3>
+
+<p>The Instrumentation API looks like an ideal candidate for inserting profiling code. However, there are a few reasons why this 
+isn’t as simple as it seems.
+
+<ul>
+<li>The Hotspot JVM crashes if a javaagent is used with a stack size of less than 220k
+<ul><li>NOTE: This has actually been fixed in more recent Java 6 releases.</ul>
+<li>Instrumenting system classes is a non trivial problem.
+<ul><li>NOTE: I have now managed this in my InTrace project so I may port that knowledge to InMemProfiler.</ul>
+</ul>
+
+<h4>JVMTI</h4>
+
+<p>The JVM Tools Interface replaces the JVMPI. However, the API does not come with such immediately 
+useful methods. Instead, the suggested way of achieving this functionality is bytecode instrumentation.
+
+<p>It’s not initially very appealing to do this instrumentation using the JVMTI as it could equally 
+be done from Java using the Instrumentation API .
+
+<p>Thankfully, the JDK includes some JVMTI demos. java_crw_demo includes code for adding static 
+method calls to the java.lang.Object constructor and after every array allocation. Perfect! In the 
+end I chose to use the JVMTI for bytecode instrumentation and to lookup the size of instances. All 
+the rest of the code is written in Java.
+
+<p>GC of instances is tracked by creating a 
+<a href="http://download.oracle.com/docs/cd/E17409_01/javase/6/docs/api/java/lang/ref/WeakReference.html">WeakReferences</a> 
+to allocated instances and tracking these using a ReferenceQueue
+
+<h3>Object Allocation</h3>
+
+<p>Given the choice to implement the runtime tracking part of this tool entirely in Java I now had a recursive problem. I want 
+to track instance allocations but performing this tracking involves allocating some instances. Getting 
+this recursion wrong in the JVM is not pretty.
+
+<h4>Errors
+
+<p>In cases where I enabled the profiling code “too early” I saw the following output.
+
+<pre>
+#
+# An unexpected error has been detected by Java Runtime Environment:
+#
+#  Internal Error (53484152454432554E54494D450E435050020F), pid=17576, tid=15156
+#
+# Java VM: Java HotSpot(TM) Client VM (1.6.0-b105 mixed mode)
+# An error report file with more information is saved as hs_err_pid17576.log
+#
+# If you would like to submit a bug report, please visit:
+#   http://java.sun.com/webapps/bugreport/crash.jsp
+#
+</pre>
+
+<p>Which was just as unhelpful in the log file:
+
+<pre>
+...
+---------------  T H R E A D  ---------------
+
+Current thread (0x003b7000):  JavaThread "Unknown thread" [_thread_in_Java, id=15156]
+
+Stack: [0x008c0000,0x00910000)
+[error occurred during error reporting, step 110, id 0xe0000000]
+...
+</pre>
+
+<p>Alternatively, in cases where I enabled the profiling code but failed to stop the allocation recursion I hit the following error:
+
+<pre>FATAL ERROR in native method: processing of -javaagent failed</pre>
+
+<p>When running in a debugger I could see that this was caused by a StackOverflowError.
+
+<h4>Synchronous mode</h4>
+
+<p>My first working implementation was to make the profiling method synchronous and have a static boolean 
+variable which indicated whether a profiling call was in progress and hence whether further allocations 
+should be recorded. I initially tried to use a ThreadLocal variable to remove the need for synchronization 
+but this turned out to be unsuitable as calling get() on a ThreadLocal can cause an object to be allocated 
+and I needed to be able to detect whether the current allocation should be recorded without causing any further allocations.
+
+<h4>Solution</h4>
+
+<p>I managed to remove the synchronization by making using of the UncaughtExceptionHandler field which every 
+thread has. My profiling method relies on setting the UncaughtExceptionHandler as a marker that any further 
+allocations by this thread should not be recorded until the UncaughtExceptionHandler is restored.
+
+<p>The only case in which this would cause a problem is if one of the allocated objects relied on setting the 
+UncaughtExceptionHandler as this update would be lost when this method returned and restored the previous 
+handler. Thankfully, none of the objects currently used by my ProfilerDataCollector class rely on setting the 
+UncaughtExceptionHandler.
+
