@@ -1,0 +1,29 @@
+---
+layout: default
+title: Runtime Overheads
+---
+<h2>Runtime Overheads</h2>
+
+<h3>CPU</h3>
+
+<p>Running InMemProfiler in your JVM will slow down all memory allocations (Objects and arrays) 
+by requiring a Java method call to run Profiling code.
+
+<h3>Memory</h3>
+
+<p>The amount of memory overhead depends on the mode in which InMemProfiler is being used.
+
+<p>In the default mode the per-object overhead is 0 but the collected data takes up an amount of 
+space proportional to the number of classes being tracked.
+
+<p>When #trackcollections is used, each object which is tracked by InMemProfiler requires 
+an additional 90 bytes of extra memory.
+
+<p>When #trace is used the collected data is larger and is proportional to the number of 
+classes being tracked and the size of the stack traces allocating them.
+
+<p>When #trace and #trackcollections are used together the per object overhead is very high as every 
+object must be tagged with the stack trace which allocated it. For any large application with deep stack 
+traces this will be very costly. The only way to counteract this is to run with #every-20 to only track every 
+20th object. You should experiment with which number works for your application if you need to run in this mode.
+
