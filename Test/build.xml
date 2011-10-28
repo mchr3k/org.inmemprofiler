@@ -1,0 +1,28 @@
+<project name="InMemProfiler-Test" basedir="." default="help">
+
+  <target name="help">
+    <java classname="org.apache.tools.ant.Main">
+      <arg value="-projecthelp" />
+    </java>
+  </target>
+
+
+
+  <target name="clean" description="Compile classes">
+    <delete dir="./build" />
+  </target>
+
+
+  <target name="build" description="Compile Java" depends="build-Java">
+  </target>
+
+  <target name="build-Java" description="Compile Java classes">
+    <mkdir dir="./build" />
+    <mkdir dir="./build/classes" />
+
+    <javac destdir="./build/classes" debug="true" source="1.6" target="1.6">
+      <src path="./src" />
+    </javac>
+  </target>
+
+</project>
