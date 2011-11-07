@@ -142,8 +142,8 @@
       </else>
     </if>
   </target>
-
-  <target name="binaries-jar" depends="build-Java"> <!--,getgitdetails-->
+  
+  <target name="binaries-jar" depends="build-Java,getgitdetails">
     <mkdir dir="./build/binaries/" />
 
     <!-- Profiler Runtime -->
