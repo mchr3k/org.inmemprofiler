@@ -143,10 +143,7 @@
     </if>
   </target>
 
-
-
-  <target name="binaries" description="Create Binaries (Jar + JVMTI Agent)" depends="build">
-
+  <target name="binaries-jar" depends="build-Java"> <!--,getgitdetails-->
     <mkdir dir="./build/binaries/" />
 
     <!-- Profiler Runtime -->
@@ -159,6 +156,11 @@
       </manifest>
       <fileset dir="./build/classes" includes="**/runtime/**/*.class" />
     </jar>
+  </target>
+
+  <target name="binaries" description="Create Binaries (Jar + JVMTI Agent)" depends="build,binaries-jar">
+
+    <mkdir dir="./build/binaries/" />
 
     <!-- JVM TI Agent -->
     <if>

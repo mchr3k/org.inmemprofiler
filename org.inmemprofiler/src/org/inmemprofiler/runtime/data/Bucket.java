@@ -9,15 +9,17 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.inmemprofiler.runtime.util.Util;
+
 /**
  * A single bucket of instance counts.
  */
 public class Bucket
 {
-  private final Map<String, AllocatedClassData> perClassData = new ConcurrentHashMap<String, AllocatedClassData>(); 
-  
-  public Trace addObject(String className, long size, Trace trace, 
-                         String[] traceTarget, 
+  private final Map<String, AllocatedClassData> perClassData = new ConcurrentHashMap<String, AllocatedClassData>();
+
+  public Trace addObject(String className, long size, Trace trace,
+                         String[] traceTarget,
                          String[] traceIgnore)
   {
     AllocatedClassData classData = perClassData.get(className);
@@ -27,7 +29,7 @@ public class Bucket
     }
     return classData.addObject(className, size, trace, traceTarget, traceIgnore);
   }
-  
+
   private synchronized AllocatedClassData newClass(String className)
   {
     AllocatedClassData classData = perClassData.get(className);
@@ -38,36 +40,36 @@ public class Bucket
     }
     return classData;
   }
-  
-  public void removeObject(String className, long size, Trace trace, 
+
+  public void removeObject(String className, long size, Trace trace,
                            String[] traceTarget, String[] traceIgnore)
   {
     AllocatedClassData classData = perClassData.get(className);
     if (classData != null)
     {
       classData.removeObject(className, size, trace, traceTarget, traceIgnore);
-    }    
+    }
   }
-  
+
   /**
    * Don't lock this method - this means the sorting will be best effort only
    * @param str
    * @param fmt
    * @param indent
-   * @param outputLimit 
-   * @param traceAllocs 
+   * @param outputLimit
+   * @param traceAllocs
    * @param outputLargest TODO
-   * @param traceIgnore 
+   * @param traceIgnore
    */
   public BucketSummary outputData(StringBuilder str,
                                   Formatter fmt,
-                                  int indent, 
-                                  long outputLimit, 
-                                  boolean traceAllocs, 
+                                  int indent,
+                                  long outputLimit,
+                                  boolean traceAllocs,
                                   boolean outputLargest)
-  {    
+  {
     BucketSummary summary = new BucketSummary();
-    
+
     List<Entry<String, AllocatedClassData>> sortedClassData = new LinkedList<Entry<String, AllocatedClassData>>(perClassData.entrySet());
     Collections.sort(sortedClassData, new Comparator<Entry<String, AllocatedClassData>>() {
         @Override
@@ -79,7 +81,19 @@ public class Bucket
           return -1 * o1Val.compareTo(o2Val);
         }
     });
-     
+
+    // Total amount allocated in this bucket
+    long totalAlloc = 0;
+    for (Entry<String, AllocatedClassData> classData : sortedClassData)
+    {
+      totalAlloc += classData.getValue().size.get();
+    }
+
+    // Output headings for this bucket
+    Util.indent(str, indent);
+    str.append("%:size:count:(largest)");
+    str.append("\n");
+
     int outputCount = 0;
     for (Entry<String, AllocatedClassData> classData : sortedClassData)
     {
@@ -87,17 +101,17 @@ public class Bucket
       {
         break;
       }
-      
-      classData.getValue().outputData(classData.getKey(), str, fmt, 
-                                      indent + 1, outputLimit, traceAllocs, 
-                                      summary, outputLargest);
-      
+
+      classData.getValue().outputData(classData.getKey(), str, fmt,
+                                      indent + 1, outputLimit, traceAllocs,
+                                      summary, outputLargest, totalAlloc);
+
       outputCount++;
     }
-    
+
     return summary;
   }
-  
+
   public static class BucketSummary
   {
     public long count;

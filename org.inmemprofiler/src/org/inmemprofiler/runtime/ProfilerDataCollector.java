@@ -22,15 +22,15 @@ public class ProfilerDataCollector
   { 5, 30, 60, 5 * 60, 30 * 60, Long.MAX_VALUE };
 
   // Recorded data
-  private static ProfilerData data;
+  private volatile static ProfilerData data;
 
   // Maps for holding class names and creation times
-  private static Map<LifetimeWeakReference, Object> weakRefSet = new ConcurrentHashMap<LifetimeWeakReference, Object>();
+  private volatile static Map<LifetimeWeakReference, Object> weakRefSet = new ConcurrentHashMap<LifetimeWeakReference, Object>();
   private static final Object setValue = new Object();
 
   // Reference Q used for recording collection times
   private static final ReferenceQueue<Object> objectCollectedQueue = new ReferenceQueue<Object>();
-  
+
   // Limit amount of output data
   private static long outputLimit = Integer.MAX_VALUE;
   private static long sampleEvery = 1;
@@ -43,7 +43,7 @@ public class ProfilerDataCollector
     String className = ref.getClass().getName();
 
     boolean earlyReturn = false;
-    
+
     // Check whether this class is explicitly allowed
     if (classPrefixes != null)
     {
@@ -76,7 +76,7 @@ public class ProfilerDataCollector
     {
       return;
     }
-    
+
     // Check whether this class is explicitly not allowed
     if (excludeClassPrefixes != null)
     {
@@ -90,7 +90,7 @@ public class ProfilerDataCollector
             earlyReturn = true;
             break;
           }
-        }        
+        }
       }
       else
       {
@@ -104,11 +104,11 @@ public class ProfilerDataCollector
         }
       }
     }
-    
+
     if (earlyReturn)
     {
       return;
-    }    
+    }
 
     long sampleIndex = sampleCount.incrementAndGet();
     if ((sampleIndex % sampleEvery) > 0)
@@ -117,42 +117,42 @@ public class ProfilerDataCollector
     }
 
     long size = ObjectSizer.getObjectSize(ref);
-        
+
     if ((largerThan > -1) && (size < largerThan))
     {
       return;
     }
-    
+
     Trace trace = null;
     if (traceAllocs)
     {
       trace = Trace.getTrace(3, className);
     }
-    
+
     // Lifetime buckets
     ProfilerData lData = data;
     trace = lData.newObject(className, size, trace, traceTarget, traceIgnore);
-    
+
     if (trackCollection)
     {
-      LifetimeWeakReference key = new LifetimeWeakReference(ref, 
-                                                            objectCollectedQueue, 
-                                                            className, 
+      LifetimeWeakReference key = new LifetimeWeakReference(ref,
+                                                            objectCollectedQueue,
+                                                            className,
                                                             System.currentTimeMillis(),
                                                             size,
                                                             trace,
                                                             lData);
       weakRefSet.put(key, setValue);
     }
-  }  
+  }
 
   public static void outputData(StringBuilder str)
   {
-    data.outputData(str, new Formatter(str), outputLimit, traceAllocs, 
+    data.outputData(str, new Formatter(str), outputLimit, traceAllocs,
                     trackCollection);
     FileOutput.writeOutput(str.toString());
   }
-  
+
   static void resetData()
   {
     data = new ProfilerData(data.bucketIntervals);
@@ -166,7 +166,7 @@ public class ProfilerDataCollector
   private static class ProfilerDataCollectorThread implements Runnable
   {
     public Thread th;
-    
+
     /**
      * Start this thread
      */
@@ -187,12 +187,12 @@ public class ProfilerDataCollector
         while (true)
         {
           LifetimeWeakReference ref = (LifetimeWeakReference)objectCollectedQueue.remove();
-          
-          String className = ref.className;        
+
+          String className = ref.className;
           long size = ref.size;
           Trace trace = ref.trace;
           long instanceCreationTime = ref.creationTime;
-          
+
           long instanceCollectionTime = System.currentTimeMillis();
           long instanceLifeTime = instanceCollectionTime
               - instanceCreationTime;
@@ -265,7 +265,7 @@ public class ProfilerDataCollector
     public Thread th;
     private final long periodicInterval;
     private long numResets;
-    
+
     public PeriodicOutputThread(long periodicInterval, long numResets)
     {
       this.periodicInterval = periodicInterval;
@@ -295,12 +295,12 @@ public class ProfilerDataCollector
           {
             StringBuilder str = new StringBuilder("Reason for output: Periodic output\n");
             ProfilerDataCollector.outputData(str);
-                      
+
             if (numResets != 0)
             {
               ProfilerAPI.resetData();
             }
-            
+
             if (numResets > 0)
             {
               numResets--;
@@ -321,30 +321,30 @@ public class ProfilerDataCollector
   private static String[] traceIgnore;
   private static String[] traceTarget;
   private static boolean exactMatch;
-  private static boolean trackCollection;  
+  private static boolean trackCollection;
 
   public static void beginProfiling(long[] buckets,
-                                    String[] allowedPrefixes, 
-                                    String[] excludePrefixes, 
-                                    boolean exactmatch, 
-                                    long gcInterval, 
+                                    String[] allowedPrefixes,
+                                    String[] excludePrefixes,
+                                    boolean exactmatch,
+                                    long gcInterval,
                                     long periodicInterval,
-                                    long outputlimit, 
-                                    long sampleevery, 
-                                    long largerthan, 
-                                    long numResets, 
-                                    boolean traceallocs, 
-                                    boolean trackcollection, 
-                                    boolean delayprofiling, 
-                                    String[] traceignore, 
-                                    String[] tracetarget, 
+                                    long outputlimit,
+                                    long sampleevery,
+                                    long largerthan,
+                                    long numResets,
+                                    boolean traceallocs,
+                                    boolean trackcollection,
+                                    boolean delayprofiling,
+                                    String[] traceignore,
+                                    String[] tracetarget,
                                     String path, String allArgs)
-  {    
+  {
     if (path == null)
     {
       path = "./";
     }
-    
+
     try
     {
       FileOutput.writer = new BufferedWriter(
@@ -357,7 +357,7 @@ public class ProfilerDataCollector
     {
       ex.printStackTrace();
     }
-    
+
     if (buckets == null)
     {
       buckets = defaultBuckets;
@@ -404,15 +404,15 @@ public class ProfilerDataCollector
           ProfilerDataCollector.outputData(str);
         }
       };
-      
+
       Runtime.getRuntime().addShutdownHook(workThreads[3]);
-    }        
+    }
 
     ObjectProfiler.ignoreThreads = workThreads;
-    
+
     if (delayprofiling)
     {
-      FileOutput.writeOutput("## Profiling delayed");      
+      FileOutput.writeOutput("## Profiling delayed");
     }
     else
     {
@@ -429,6 +429,6 @@ public class ProfilerDataCollector
   public static void pauseProfiling()
   {
     FileOutput.writeOutput("## Profiling disabled");
-    ObjectProfiler.profilingEnabled = true;
+    ObjectProfiler.profilingEnabled = false;
   }
 }

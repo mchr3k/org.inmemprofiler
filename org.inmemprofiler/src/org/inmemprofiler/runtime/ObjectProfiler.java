@@ -8,16 +8,16 @@ import org.inmemprofiler.runtime.util.PlaceholderHandler;
 public class ObjectProfiler
 {
   public static Thread[] ignoreThreads = null;
-  public static boolean profilingEnabled = false;
+  public static volatile boolean profilingEnabled = false;
   public static final PlaceholderHandler CRITICAL_BLOCK = new PlaceholderHandler();
-   
+
   /**
    * This method calls through to {@link ProfilerDataCollector} to record object allocation.
    * However, we must avoid having this call result in further object allocations which
    * we attempt to record. If this was to happen we would hit a stack overflow.
    * <p>
    * This method relies on setting the UncaughtExceptionHandler as a marker that any
-   * further allocations by this thread should not be recorded until the 
+   * further allocations by this thread should not be recorded until the
    * UncaughtExceptionHandler is restored.
    * <p>
    * The only case in which this would cause a problem is if one of the allocated
@@ -39,7 +39,7 @@ public class ObjectProfiler
         try
         {
           currentThread.setUncaughtExceptionHandler(CRITICAL_BLOCK);
-          
+
           ProfilerDataCollector.profileNewObject(ref);
         }
         finally
