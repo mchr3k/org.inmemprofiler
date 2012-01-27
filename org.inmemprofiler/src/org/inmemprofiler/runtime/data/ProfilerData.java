@@ -51,13 +51,14 @@ public class ProfilerData
                                       Formatter fmt, 
                                       long outputLimit,
                                       boolean traceAllocs, 
-                                      boolean trackCollection)
+                                      boolean trackCollection, 
+                                      boolean blameAllocs)
   {
     if (trackCollection)
     {
       str.append("Live objects:\n");
       BucketSummary summary = liveObjects.outputData(str, fmt, 1, outputLimit, 
-                                                     traceAllocs, false);      
+                                                     traceAllocs, false, blameAllocs);      
       str.append("\n");
       str.append("Live objects summary:\n");
       Util.indent(str, 1);
@@ -67,12 +68,12 @@ public class ProfilerData
       str.append("\n\n");
       
       str.append("Collected objects:\n");
-      collectedObjects.outputData(str, fmt, 1, outputLimit, traceAllocs);
+      collectedObjects.outputData(str, fmt, 1, outputLimit, traceAllocs, blameAllocs);
     }
     else
     {
       str.append("Allocated objects:\n");
-      liveObjects.outputData(str, fmt, 1, outputLimit, traceAllocs, true);
+      liveObjects.outputData(str, fmt, 1, outputLimit, traceAllocs, true, blameAllocs);
     }
   }
 }

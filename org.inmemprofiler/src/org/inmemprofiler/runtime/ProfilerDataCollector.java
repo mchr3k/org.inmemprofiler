@@ -37,6 +37,8 @@ public class ProfilerDataCollector
   private static long largerThan = -1;
   private static AtomicLong sampleCount = new AtomicLong(0);
   private static boolean traceAllocs = false;
+  private static boolean detailedTrace = false;
+  private static boolean blameAllocs = true;
 
   public static void profileNewObject(Object ref)
   {
@@ -126,7 +128,7 @@ public class ProfilerDataCollector
     Trace trace = null;
     if (traceAllocs)
     {
-      trace = Trace.getTrace(3, className);
+      trace = Trace.getTrace(3, className, detailedTrace);
     }
     
     // Lifetime buckets
@@ -148,8 +150,11 @@ public class ProfilerDataCollector
 
   public static void outputData(StringBuilder str)
   {
-    data.outputData(str, new Formatter(str), outputLimit, traceAllocs, 
-                    trackCollection);
+    data.outputData(str, new Formatter(str), 
+                    outputLimit, 
+                    traceAllocs, 
+                    trackCollection,
+                    blameAllocs);
     FileOutput.writeOutput(str.toString());
   }
   
@@ -336,9 +341,12 @@ public class ProfilerDataCollector
                                     boolean traceallocs, 
                                     boolean trackcollection, 
                                     boolean delayprofiling, 
+                                    boolean blame, 
+                                    boolean detailedtrace, 
                                     String[] traceignore, 
                                     String[] tracetarget, 
-                                    String path, String allArgs)
+                                    String path, 
+                                    String allArgs)
   {    
     if (path == null)
     {
@@ -370,6 +378,8 @@ public class ProfilerDataCollector
     sampleEvery = sampleevery;
     largerThan = largerthan;
     traceAllocs = traceallocs;
+    detailedTrace = detailedtrace;
+    blameAllocs = blame;
     traceIgnore = traceignore;
     traceTarget = tracetarget;
     trackCollection = trackcollection;

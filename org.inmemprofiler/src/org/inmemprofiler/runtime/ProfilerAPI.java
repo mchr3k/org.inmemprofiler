@@ -27,6 +27,8 @@ public class ProfilerAPI
       boolean traceallocs = false;
       boolean trackcollection = false;
       boolean delayprofiling = false;
+      boolean detailedtrace = false;
+      boolean blame = true;
       
       long gcInterval = -1;
       long periodicInterval = -1;
@@ -234,6 +236,14 @@ public class ProfilerAPI
           {
             traceallocs = true;
           }
+          else if (arg.equals("detailedtrace"))
+          {
+            detailedtrace = true;
+          }
+          else if (arg.equals("noblame"))
+          {
+            blame = false;
+          }
           else if (arg.equals("trackcollection"))
           {
             trackcollection = true;
@@ -263,9 +273,9 @@ public class ProfilerAPI
                                            traceallocs,
                                            trackcollection,
                                            delayprofiling,
-                                           traceIgnore,
-                                           traceTarget,
-                                           path, allArgs);
+                                           blame,
+                                           detailedtrace,
+                                           traceIgnore, traceTarget, path, allArgs);
       
       parsedArgs = true;
     }

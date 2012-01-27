@@ -92,7 +92,7 @@ public class Trace
     return hashCode;
   }
   
-  public static Trace getTrace(int ignoreDepth, String className)
+  public static Trace getTrace(int ignoreDepth, String className, boolean detailedTrace)
   {
     Exception ex = new Exception();
     StackTraceElement[] stackTrace = ex.getStackTrace();
@@ -114,10 +114,17 @@ public class Trace
     StackTraceElement[] fixedTrace = new StackTraceElement[stackTrace.length - ignoreDepth];
     for (int ii = ignoreDepth; ii < stackTrace.length; ii++)
     {
-      fixedTrace[ii-ignoreDepth] = new StackTraceElement(stackTrace[ii].getClassName(),
-                                                         stackTrace[ii].getMethodName(),
-                                                         stackTrace[ii].getFileName(),
-                                                         -1);
+      if (detailedTrace)
+      {
+        fixedTrace[ii-ignoreDepth] = stackTrace[ii];
+      }
+      else
+      {
+        fixedTrace[ii-ignoreDepth] = new StackTraceElement(stackTrace[ii].getClassName(),
+                                                           stackTrace[ii].getMethodName(),
+                                                           stackTrace[ii].getFileName(),
+                                                           -1);
+      }
     }
     
     Trace trace = new Trace(fixedTrace);

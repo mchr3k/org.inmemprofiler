@@ -107,7 +107,8 @@ public class AllocatedClassData
                                       long outputLimit, 
                                       boolean traceAllocs, 
                                       BucketSummary summary, 
-                                      boolean outputLargest)
+                                      boolean outputLargest, 
+                                      boolean blameAllocs)
   {
     if (count.get() == 0)
     {
@@ -161,32 +162,36 @@ public class AllocatedClassData
       }
       
       str.append("\n");
-      Util.indent(str, indent);
-      str.append("Allocation Classes:\n");
-      List<Entry<String, AllocatingClassData>> sortedAllocClasses = new LinkedList<Entry<String, AllocatingClassData>>(allocatingClasses.entrySet());
-      Collections.sort(sortedAllocClasses, new Comparator<Entry<String, AllocatingClassData>>() {
-          @Override
-          public int compare(Entry<String, AllocatingClassData> o1,
-                             Entry<String, AllocatingClassData> o2)
-          {
-            Long o1Val = o1.getValue().size.get();
-            Long o2Val = o2.getValue().size.get();
-            return -1 * o1Val.compareTo(o2Val);
-          }
-      });   
-      outputCount = 0;
-      for (Entry<String, AllocatingClassData> classData : sortedAllocClasses)
+      
+      if (blameAllocs)
       {
-        if (outputCount >= outputLimit)
+        Util.indent(str, indent);
+        str.append("Allocation Classes:\n");
+        List<Entry<String, AllocatingClassData>> sortedAllocClasses = new LinkedList<Entry<String, AllocatingClassData>>(allocatingClasses.entrySet());
+        Collections.sort(sortedAllocClasses, new Comparator<Entry<String, AllocatingClassData>>() {
+            @Override
+            public int compare(Entry<String, AllocatingClassData> o1,
+                               Entry<String, AllocatingClassData> o2)
+            {
+              Long o1Val = o1.getValue().size.get();
+              Long o2Val = o2.getValue().size.get();
+              return -1 * o1Val.compareTo(o2Val);
+            }
+        });
+        outputCount = 0;
+        for (Entry<String, AllocatingClassData> classData : sortedAllocClasses)
         {
-          break;
+          if (outputCount >= outputLimit)
+          {
+            break;
+          }
+          
+          classData.getValue().outputData(classData.getKey(), str, fmt, indent + 2, outputLimit);        
+          outputCount++;
         }
         
-        classData.getValue().outputData(classData.getKey(), str, fmt, indent + 2, outputLimit);        
-        outputCount++;
+        str.append("\n");
       }
-      
-      str.append("\n");
     }
   }
 

@@ -54,7 +54,8 @@ public class BucketContainer
                          Formatter fmt,
                          int indent, 
                          long outputLimit, 
-                         boolean traceAllocs)
+                         boolean traceAllocs, 
+                         boolean blameAllocs)
   {   
     long lastLong = 0;
     BucketSummary[] summaries = new BucketSummary[bucketIntervals.length];
@@ -69,7 +70,7 @@ public class BucketContainer
       str.append("(s) :\n");
       
       Bucket bucket = collectedInstanceBuckets.get(bucketInterval);
-      summaries[ii] = bucket.outputData(str, fmt, indent + 1, outputLimit, traceAllocs, true);      
+      summaries[ii] = bucket.outputData(str, fmt, indent + 1, outputLimit, traceAllocs, true, blameAllocs);      
       
       lastLong = bucketInterval;
     }    
