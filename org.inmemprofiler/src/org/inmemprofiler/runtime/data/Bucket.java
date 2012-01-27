@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.inmemprofiler.runtime.util.Util;
+
 /**
  * A single bucket of instance counts.
  */
@@ -82,6 +84,18 @@ public class Bucket
         }
     });
      
+    // Total amount allocated in this bucket
+    long totalAlloc = 0;
+    for (Entry<String, AllocatedClassData> classData : sortedClassData)
+    {
+      totalAlloc += classData.getValue().size.get();
+    }
+
+    // Output headings for this bucket
+    Util.indent(str, indent);
+    str.append("%:size:count:(largest)");
+    str.append("\n");
+
     int outputCount = 0;
     for (Entry<String, AllocatedClassData> classData : sortedClassData)
     {
@@ -92,7 +106,7 @@ public class Bucket
       
       classData.getValue().outputData(classData.getKey(), str, fmt, 
                                       indent + 1, outputLimit, traceAllocs, 
-                                      summary, outputLargest, blameAllocs);
+                                      summary, outputLargest, totalAlloc, blameAllocs);
       
       outputCount++;
     }

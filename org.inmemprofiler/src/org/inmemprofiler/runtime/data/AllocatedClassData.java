@@ -6,8 +6,8 @@ import java.util.Formatter;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -107,7 +107,8 @@ public class AllocatedClassData
                                       long outputLimit, 
                                       boolean traceAllocs, 
                                       BucketSummary summary, 
-                                      boolean outputLargest, 
+                                      boolean outputLargest,
+                                      long bucketTotalAlloc,
                                       boolean blameAllocs)
   {
     if (count.get() == 0)
@@ -115,7 +116,15 @@ public class AllocatedClassData
       return;
     }
     
+    // Compute % for this class
+    double thisAlloc = size.get();
+    double totalAlloc = bucketTotalAlloc;
+    double allocPercent = (thisAlloc / totalAlloc) * 100;
+    long allocPercentRounded = Math.round(allocPercent);
+
     Util.indent(str, indent - 1);
+    str.append(String.format("%3d", allocPercentRounded));
+    str.append("%:");
     str.append(size.get());
     str.append(":");
     str.append(count.get());
@@ -156,7 +165,7 @@ public class AllocatedClassData
           break;
         }
         
-        traceData.getValue().outputData(traceData.getKey(), str, fmt, indent + 1);
+        traceData.getValue().outputData(traceData.getKey(), str, fmt, indent + 1, size.get());
         
         outputCount++;
       }
@@ -167,6 +176,8 @@ public class AllocatedClassData
       {
         Util.indent(str, indent);
         str.append("Allocation Classes:\n");
+      Util.indent(str, indent);
+      str.append("%:size:count\n");
         List<Entry<String, AllocatingClassData>> sortedAllocClasses = new LinkedList<Entry<String, AllocatingClassData>>(allocatingClasses.entrySet());
         Collections.sort(sortedAllocClasses, new Comparator<Entry<String, AllocatingClassData>>() {
             @Override
@@ -177,7 +188,7 @@ public class AllocatedClassData
               Long o2Val = o2.getValue().size.get();
               return -1 * o1Val.compareTo(o2Val);
             }
-        });
+      });
         outputCount = 0;
         for (Entry<String, AllocatingClassData> classData : sortedAllocClasses)
         {
@@ -185,11 +196,12 @@ public class AllocatedClassData
           {
             break;
           }
-          
-          classData.getValue().outputData(classData.getKey(), str, fmt, indent + 2, outputLimit);        
+
+        // Output details about an allocating class
+        classData.getValue().outputData(classData.getKey(), str, fmt, indent + 2, outputLimit, size.get());
           outputCount++;
         }
-        
+
         str.append("\n");
       }
     }

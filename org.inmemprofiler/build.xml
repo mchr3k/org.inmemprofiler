@@ -80,24 +80,44 @@
         </exec>
       </then>
       <else>
-        <echo>Linux build</echo>
+        <echo>Linux build (32 bit)</echo>
         <exec dir="jvmti" executable="gcc">
-          <arg line="-I'${env.JAVA_HOME}/include'
+          <arg line="-m32 -fPIC -I'${env.JAVA_HOME}/include'
                      -I'${env.JAVA_HOME}/include/linux'
-                     -c agent_util.c -o agent_util.o" />
+                     -c agent_util.c -o agent_util32.o" />
         </exec>
         <exec dir="jvmti" executable="gcc">
-          <arg line="-I'${env.JAVA_HOME}/include'
+          <arg line="-m32 -fPIC -I'${env.JAVA_HOME}/include'
                      -I'${env.JAVA_HOME}/include/linux'
-                     -c java_crw_demo.c -o java_crw_demo.o" />
+                     -c java_crw_demo.c -o java_crw_demo32.o" />
         </exec>
         <exec dir="jvmti" executable="gcc">
-          <arg line="-I'${env.JAVA_HOME}/include'
+          <arg line="-m32 -fPIC -I'${env.JAVA_HOME}/include'
                      -I'${env.JAVA_HOME}/include/linux'
-                     -c objectSizer.c -o objectSizer.o" />
+                     -c objectSizer.c -o objectSizer32.o" />
         </exec>
         <exec dir="jvmti" executable="gcc">
-          <arg line="-shared -o libinmemprofiler.so objectSizer.o java_crw_demo.o agent_util.o">
+          <arg line="-shared -m32 -fPIC -o libinmemprofiler32.so objectSizer32.o java_crw_demo32.o agent_util32.o">
+          </arg>
+        </exec>
+        <echo>Linux build (64 bit)</echo>
+        <exec dir="jvmti" executable="gcc">
+          <arg line="-m64 -fPIC -I'${env.JAVA_HOME}/include'
+                     -I'${env.JAVA_HOME}/include/linux'
+                     -c agent_util.c -o agent_util64.o" />
+        </exec>
+        <exec dir="jvmti" executable="gcc">
+          <arg line="-m64 -fPIC -I'${env.JAVA_HOME}/include'
+                     -I'${env.JAVA_HOME}/include/linux'
+                     -c java_crw_demo.c -o java_crw_demo64.o" />
+        </exec>
+        <exec dir="jvmti" executable="gcc">
+          <arg line="-m64 -fPIC -I'${env.JAVA_HOME}/include'
+                     -I'${env.JAVA_HOME}/include/linux'
+                     -c objectSizer.c -o objectSizer64.o" />
+        </exec>
+        <exec dir="jvmti" executable="gcc">
+          <arg line="-shared -m64 -fPIC -o libinmemprofiler64.so objectSizer64.o java_crw_demo64.o agent_util64.o">
           </arg>
         </exec>
       </else>
@@ -122,11 +142,8 @@
       </else>
     </if>
   </target>
-
-
-
-  <target name="binaries" description="Create Binaries (Jar + JVMTI Agent)" depends="build, getgitdetails">
-
+  
+  <target name="binaries-jar" depends="build-Java,getgitdetails">
     <mkdir dir="./build/binaries/" />
 
     <!-- Profiler Runtime -->
@@ -139,6 +156,11 @@
       </manifest>
       <fileset dir="./build/classes" includes="**/runtime/**/*.class" />
     </jar>
+  </target>
+
+  <target name="binaries" description="Create Binaries (Jar + JVMTI Agent)" depends="build,binaries-jar">
+
+    <mkdir dir="./build/binaries/" />
 
     <!-- JVM TI Agent -->
     <if>
@@ -148,8 +170,9 @@
         <copy file="./jvmti/inmemprofiler.dll" todir="./build/binaries/" />
       </then>
       <else>
-        <echo>Linux build</echo>
-        <copy file="./jvmti/libinmemprofiler.so" todir="./build/binaries/" />
+        <echo>Linux build (32/64 bit)</echo>
+        <copy file="./jvmti/libinmemprofiler32.so" todir="./build/binaries/" />
+        <copy file="./jvmti/libinmemprofiler64.so" todir="./build/binaries/" />
       </else>
     </if>
 
@@ -166,8 +189,9 @@
         <copy file="./build/binaries/inmemprofiler.dll" todir="../Test/" />
       </then>
       <else>
-        <echo>Linux build</echo>
-        <copy file="./build/binaries/libinmemprofiler.so" todir="../Test/" />
+        <echo>Linux build (32/64 bit)</echo>
+        <copy file="./build/binaries/libinmemprofiler32.so" todir="../Test/" />
+        <copy file="./build/binaries/libinmemprofiler64.so" todir="../Test/" />
       </else>
     </if>
   </target>

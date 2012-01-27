@@ -22,10 +22,10 @@ public class ProfilerDataCollector
   { 5, 30, 60, 5 * 60, 30 * 60, Long.MAX_VALUE };
 
   // Recorded data
-  private static ProfilerData data;
+  private volatile static ProfilerData data;
 
   // Maps for holding class names and creation times
-  private static Map<LifetimeWeakReference, Object> weakRefSet = new ConcurrentHashMap<LifetimeWeakReference, Object>();
+  private volatile static Map<LifetimeWeakReference, Object> weakRefSet = new ConcurrentHashMap<LifetimeWeakReference, Object>();
   private static final Object setValue = new Object();
 
   // Reference Q used for recording collection times
@@ -439,6 +439,6 @@ public class ProfilerDataCollector
   public static void pauseProfiling()
   {
     FileOutput.writeOutput("## Profiling disabled");
-    ObjectProfiler.profilingEnabled = true;
+    ObjectProfiler.profilingEnabled = false;
   }
 }
