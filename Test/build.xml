@@ -6,12 +6,9 @@
     </java>
   </target>
 
-
-
   <target name="clean" description="Compile classes">
     <delete dir="./build" />
   </target>
-
 
   <target name="build" description="Compile Java" depends="build-Java">
   </target>

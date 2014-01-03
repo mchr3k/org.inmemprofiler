@@ -1,199 +1,258 @@
 <project name="InMemProfiler" basedir="." default="help">
 
-  <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpath="./lib/ant-contrib-1.0b3.jar" />
-  <taskdef name="jarjar" classname="com.tonicsystems.jarjar.JarJarTask" classpath="./lib/jarjar-1.0.jar" />
+	<taskdef resource="net/sf/antcontrib/antcontrib.properties" classpath="./lib/ant-contrib-1.0b3.jar" />
+	<taskdef name="jarjar" classname="com.tonicsystems.jarjar.JarJarTask" classpath="./lib/jarjar-1.0.jar" />
 
 
-  <!--======================================================================-->
-  <!-- Setup OS specific var                                                -->
-  <!--======================================================================-->
-  <condition property="os.type" value="win">
-    <os family="windows" />
-  </condition>
+	<!--======================================================================-->
+	<!-- Setup OS specific var                                                -->
+	<!--======================================================================-->
+	<condition property="os.type" value="win">
+		<os family="windows" />
+	</condition>
 
-  <condition property="os.type" value="linux">
-    <os family="unix" />
-  </condition>
+	<condition property="os.type" value="linux">
+		<os family="unix" />
+	</condition>
 
+	<target name="help">
+		<java classname="org.apache.tools.ant.Main">
+			<arg value="-projecthelp" />
+		</java>
+	</target>
 
-  <target name="help">
-    <java classname="org.apache.tools.ant.Main">
-      <arg value="-projecthelp" />
-    </java>
-  </target>
+	<target name="clean" description="Compile classes">
+		<delete dir="./build" />
 
+		<delete>
+			<fileset dir="." includes="**/*.o, **/*.so, **/*.class" />
+		</delete>
+	</target>
 
+	<target name="build" description="Compile Java and C" depends="check-arch, build-Java, build-C">
+	</target>
 
-  <target name="clean" description="Compile classes">
-    <delete dir="./build" />
-  </target>
+	<target name="check-arch" description="check architecture">
+		<if>
+			<os family="windows" />
+			<then>
+				<!-- TODO -->
+			</then>
+			<elseif>
+				<os family="unix" />
+				<then>
+					<exec dir="." executable="/bin/sh" outputproperty="command.ouput">
+						<arg line="-c 'uname -m'" />
+					</exec>
 
+					<if>
+						<contains string="${command.ouput}" substring="x86_64" />
+						<then>
+							<var name="os.bitness" value="64" />
+							<echo>Arch = Linux 64 bits</echo>
+						</then>
+						<else>
+							<var name="os.bitness" value="32" />
+							<echo>Arch = Linux 32 bits</echo>
+						</else>
+					</if>
+				</then>
+			</elseif>
+		</if>
+	</target>
 
-  <target name="build" description="Compile Java and C" depends="build-Java, build-C">
-  </target>
+	<!--======================================================================-->
+	<!-- Build-Java                                                           -->
+	<!--======================================================================-->
 
-  <target name="build-Java" description="Comile Java classes">
-    <mkdir dir="./build" />
-    <mkdir dir="./build/classes" />
+	<target name="build-Java" description="Compile Java classes">
+		<mkdir dir="./build" />
+		<mkdir dir="./build/classes" />
 
-    <javac destdir="./build/classes" debug="true" source="1.6" target="1.6">
-      <src path="./src" />
-      <classpath>
-        <fileset dir="./lib" includes="*.jar" />
-      </classpath>
-    </javac>
-  </target>
+		<javac destdir="./build/classes" debug="true" source="1.6" target="1.6">
+			<src path="./src" />
+			<classpath>
+				<fileset dir="./lib" includes="*.jar" />
+			</classpath>
+		</javac>
+	</target>
 
+	<!--======================================================================-->
+	<!-- Build-C                                                              -->
+	<!--======================================================================-->
+	<target name="build-C" description="Compile C code">
+		<echo>Dependencies:</echo>
+		<echo>- MinGW Installed and bin folder in PATH</echo>
+		<echo>- JDK 1.5+ Bin folder in PATH</echo>
+		<property environment="env" />
 
+		<if>
+			<os family="windows" />
+			<then>
+				<echo>Windows build</echo>
+				<exec dir="jvmti" executable="gcc">
+					<arg line="-I'${env.JAVA_HOME}/include'
+							   -I'${env.JAVA_HOME}/include/win32'
+							   -c agent_util.c -o agent_util.o" />
+				</exec>
+				<exec dir="jvmti" executable="gcc">
+					<arg line="-I'${env.JAVA_HOME}/include'
+							   -I'${env.JAVA_HOME}/include/win32'
+							   -c java_crw_demo.c -o java_crw_demo.o" />
+				</exec>
+				<exec dir="jvmti" executable="gcc">
+					<arg line="-I'${env.JAVA_HOME}/include'
+							   -I'${env.JAVA_HOME}/include/win32'
+							   -c objectSizer.c -o objectSizer.o" />
+				</exec>
+				<exec dir="jvmti" executable="gcc">
+					<arg line="-shared -Wl,--enable-stdcall-fixup
+							   -o inmemprofiler.dll objectSizer.o java_crw_demo.o agent_util.o objectSizer.def">
+					</arg>
+				</exec>
+			</then>
+			<elseif>
+				<os family="unix" />
+				<then>
+					<echo>Linux build (32 bit)</echo>
 
-  <!--======================================================================-->
-  <!-- Build-C                                                              -->
-  <!--======================================================================-->
-  <target name="build-C" description="Compile C code">
-    <echo>Dependencies:</echo>
-    <echo>- MinGW Installed and bin folder in PATH</echo>
-    <echo>- JDK 1.5+ Bin folder in PATH</echo>
-    <property environment="env" />
+					<exec dir="jvmti" executable="gcc">
+						<arg line="-m32 -fPIC -I'${env.JAVA_HOME}/include'
+								   -I'${env.JAVA_HOME}/include/linux'
+								   -c agent_util.c -o agent_util32.o" />
+					</exec>
+					<exec dir="jvmti" executable="gcc">
+						<arg line="-m32 -fPIC -I'${env.JAVA_HOME}/include'
+								   -I'${env.JAVA_HOME}/include/linux'
+								   -c java_crw_demo.c -o java_crw_demo32.o" />
+					</exec>
+					<exec dir="jvmti" executable="gcc">
+						<arg line="-m32 -fPIC -I'${env.JAVA_HOME}/include'
+								   -I'${env.JAVA_HOME}/include/linux'
+								   -c objectSizer.c -o objectSizer32.o" />
+					</exec>
+					<exec dir="jvmti" executable="gcc">
+						<arg line="-shared -m32 -fPIC
+								   -o libinmemprofiler32.so objectSizer32.o java_crw_demo32.o agent_util32.o">
+						</arg>
+					</exec>
 
-    <if>
-      <equals arg1="${os.type}" arg2="win" />
-      <then>
-        <echo>Windows build</echo>
-        <exec dir="jvmti" executable="gcc">
-          <arg line="-I'${env.JAVA_HOME}/include'
-                     -I'${env.JAVA_HOME}/include/win32'
-                     -c agent_util.c -o agent_util.o" />
-        </exec>
-        <exec dir="jvmti" executable="gcc">
-          <arg line="-I'${env.JAVA_HOME}/include'
-                     -I'${env.JAVA_HOME}/include/win32'
-                     -c java_crw_demo.c -o java_crw_demo.o" />
-        </exec>
-        <exec dir="jvmti" executable="gcc">
-          <arg line="-I'${env.JAVA_HOME}/include'
-                     -I'${env.JAVA_HOME}/include/win32'
-                     -c objectSizer.c -o objectSizer.o" />
-        </exec>
-        <exec dir="jvmti" executable="gcc">
-          <arg line="-shared -Wl,--enable-stdcall-fixup -o inmemprofiler.dll objectSizer.o java_crw_demo.o agent_util.o objectSizer.def">
-          </arg>
-        </exec>
-      </then>
-      <else>
-        <echo>Linux build (32 bit)</echo>
-        <exec dir="jvmti" executable="gcc">
-          <arg line="-m32 -fPIC -I'${env.JAVA_HOME}/include'
-                     -I'${env.JAVA_HOME}/include/linux'
-                     -c agent_util.c -o agent_util32.o" />
-        </exec>
-        <exec dir="jvmti" executable="gcc">
-          <arg line="-m32 -fPIC -I'${env.JAVA_HOME}/include'
-                     -I'${env.JAVA_HOME}/include/linux'
-                     -c java_crw_demo.c -o java_crw_demo32.o" />
-        </exec>
-        <exec dir="jvmti" executable="gcc">
-          <arg line="-m32 -fPIC -I'${env.JAVA_HOME}/include'
-                     -I'${env.JAVA_HOME}/include/linux'
-                     -c objectSizer.c -o objectSizer32.o" />
-        </exec>
-        <exec dir="jvmti" executable="gcc">
-          <arg line="-shared -m32 -fPIC -o libinmemprofiler32.so objectSizer32.o java_crw_demo32.o agent_util32.o">
-          </arg>
-        </exec>
-        <echo>Linux build (64 bit)</echo>
-        <exec dir="jvmti" executable="gcc">
-          <arg line="-m64 -fPIC -I'${env.JAVA_HOME}/include'
-                     -I'${env.JAVA_HOME}/include/linux'
-                     -c agent_util.c -o agent_util64.o" />
-        </exec>
-        <exec dir="jvmti" executable="gcc">
-          <arg line="-m64 -fPIC -I'${env.JAVA_HOME}/include'
-                     -I'${env.JAVA_HOME}/include/linux'
-                     -c java_crw_demo.c -o java_crw_demo64.o" />
-        </exec>
-        <exec dir="jvmti" executable="gcc">
-          <arg line="-m64 -fPIC -I'${env.JAVA_HOME}/include'
-                     -I'${env.JAVA_HOME}/include/linux'
-                     -c objectSizer.c -o objectSizer64.o" />
-        </exec>
-        <exec dir="jvmti" executable="gcc">
-          <arg line="-shared -m64 -fPIC -o libinmemprofiler64.so objectSizer64.o java_crw_demo64.o agent_util64.o">
-          </arg>
-        </exec>
-      </else>
-    </if>
-  </target>
+					<if>
+						<equals arg1="${os.bitness}" arg2="64" />
+						<then>
+							<echo>Linux build (64 bit)</echo>
 
-  <target name="getgitdetails">
-    <exec executable="git" outputproperty="git.tagstring">
-      <arg value="describe" />
-    </exec>
-    <exec executable="git" outputproperty="git.revision">
-      <arg value="rev-parse" />
-      <arg value="HEAD" />
-    </exec>
-    <if>
-      <contains string="${git.tagstring}" substring="cannot" />
-      <then>
-        <property name="git.tag" value="none" />
-      </then>
-      <else>
-        <property name="git.tag" value="${git.tagstring}" />
-      </else>
-    </if>
-  </target>
-  
-  <target name="binaries-jar" depends="build-Java,getgitdetails">
-    <mkdir dir="./build/binaries/" />
+							<exec dir="jvmti" executable="gcc">
+								<arg line="-m64 -fPIC -I'${env.JAVA_HOME}/include'
+										   -I'${env.JAVA_HOME}/include/linux'
+										   -c agent_util.c -o agent_util64.o" />
+							</exec>
+							<exec dir="jvmti" executable="gcc">
+								<arg line="-m64 -fPIC -I'${env.JAVA_HOME}/include'
+										   -I'${env.JAVA_HOME}/include/linux'
+										   -c java_crw_demo.c -o java_crw_demo64.o" />
+							</exec>
+							<exec dir="jvmti" executable="gcc">
+								<arg line="-m64 -fPIC -I'${env.JAVA_HOME}/include'
+										   -I'${env.JAVA_HOME}/include/linux'
+										   -c objectSizer.c -o objectSizer64.o" />
+							</exec>
+							<exec dir="jvmti" executable="gcc">
+								<arg line="-shared -m64 -fPIC
+										   -o libinmemprofiler64.so objectSizer64.o java_crw_demo64.o agent_util64.o">
+								</arg>
+							</exec>
+						</then>
+					</if>
+				</then>
+			</elseif>
+		</if>
+	</target>
 
-    <!-- Profiler Runtime -->
-    <jar jarfile="./build/binaries/inmemprofiler.jar" compress="false">
-      <manifest>
-        <attribute name="Premain-Class" value="org.inmemprofiler.runtime.Agent" />
-        <attribute name="Can-Redefine-Classes" value="false" />
-        <attribute name="Git-Revision" value="${git.revision}" />
-        <attribute name="Implementation-Version" value="${git.tag}" />
-      </manifest>
-      <fileset dir="./build/classes" includes="**/runtime/**/*.class" />
-    </jar>
-  </target>
+	<target name="getgitdetails">
+		<exec executable="git" outputproperty="git.tagstring">
+			<arg value="describe" />
+		</exec>
+		<exec executable="git" outputproperty="git.revision">
+			<arg value="rev-parse" />
+			<arg value="HEAD" />
+		</exec>
+		<if>
+			<contains string="${git.tagstring}" substring="cannot" />
+			<then>
+				<property name="git.tag" value="none" />
+			</then>
+			<else>
+				<property name="git.tag" value="${git.tagstring}" />
+			</else>
+		</if>
+	</target>
 
-  <target name="binaries" description="Create Binaries (Jar + JVMTI Agent)" depends="build,binaries-jar">
+	<target name="binaries-jar" depends="build-Java, getgitdetails">
+		<mkdir dir="./build/binaries/" />
 
-    <mkdir dir="./build/binaries/" />
+		<!-- Profiler Runtime -->
+		<jar jarfile="./build/binaries/inmemprofiler.jar" compress="false">
+			<manifest>
+				<attribute name="Premain-Class" value="org.inmemprofiler.runtime.Agent" />
+				<attribute name="Can-Redefine-Classes" value="false" />
+				<attribute name="Git-Revision" value="${git.revision}" />
+				<attribute name="Implementation-Version" value="${git.tag}" />
+			</manifest>
+			<fileset dir="./build/classes" includes="**/runtime/**/*.class" />
+		</jar>
+	</target>
 
-    <!-- JVM TI Agent -->
-    <if>
-      <equals arg1="${os.type}" arg2="win" />
-      <then>
-        <echo>Windows build</echo>
-        <copy file="./jvmti/inmemprofiler.dll" todir="./build/binaries/" />
-      </then>
-      <else>
-        <echo>Linux build (32/64 bit)</echo>
-        <copy file="./jvmti/libinmemprofiler32.so" todir="./build/binaries/" />
-        <copy file="./jvmti/libinmemprofiler64.so" todir="./build/binaries/" />
-      </else>
-    </if>
+	<target name="binaries" description="Create Binaries (Jar + JVMTI Agent)" depends="build, binaries-jar">
+		<mkdir dir="./build/binaries/" />
 
-  </target>
+		<!-- JVM TI Agent -->
+		<if>
+			<os family="windows" />
+			<then>
+				<echo>Windows build</echo>
+				<move file="./jvmti/inmemprofiler.dll" todir="./build/binaries/" />
+			</then>
+			<elseif>
+				<os family="unix" />
+				<then>
+					<echo>Linux build</echo>
+					<move file="./jvmti/libinmemprofiler32.so" todir="./build/binaries/" />
 
+					<if>
+						<equals arg1="${os.bitness}" arg2="64" />
+						<then>
+							<move file="./jvmti/libinmemprofiler64.so" todir="./build/binaries/" />
+						</then>
+					</if>
+				</then>
+			</elseif>
+		</if>
+	</target>
 
+	<target name="deploy" description="Deploy to test project" depends="binaries">
+		<copy file="./build/binaries/inmemprofiler.jar" todir="../Test/" />
+		<if>
+			<os family="windows" />
+			<then>
+				<echo>Windows build</echo>
+				<copy file="./build/binaries/inmemprofiler.dll" todir="../Test/" />
+			</then>
+			<elseif>
+				<os family="unix" />
+				<then>
+					<echo>Linux build</echo>
+					<copy file="./build/binaries/libinmemprofiler32.so" todir="../Test/" />
 
-  <target name="deploy" description="Deploy to test project" depends="binaries">
-    <copy file="./build/binaries/inmemprofiler.jar" todir="../Test/" />
-    <if>
-      <equals arg1="${os.type}" arg2="win" />
-      <then>
-        <echo>Windows build</echo>
-        <copy file="./build/binaries/inmemprofiler.dll" todir="../Test/" />
-      </then>
-      <else>
-        <echo>Linux build (32/64 bit)</echo>
-        <copy file="./build/binaries/libinmemprofiler32.so" todir="../Test/" />
-        <copy file="./build/binaries/libinmemprofiler64.so" todir="../Test/" />
-      </else>
-    </if>
-  </target>
+					<if>
+						<equals arg1="${os.bitness}" arg2="64" />
+						<then>
+							<copy file="./build/binaries/libinmemprofiler64.so" todir="../Test/" />
+						</then>
+					</if>
+				</then>
+			</elseif>
+		</if>
+	</target>
 
 </project>
