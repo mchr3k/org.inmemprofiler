@@ -17,9 +17,8 @@ import org.inmemprofiler.runtime.util.FileOutput;
 
 public class ProfilerDataCollector
 {
-
   private static final long[] defaultBuckets = new long[]
-  { 5, 30, 60, 5 * 60, 30 * 60, Long.MAX_VALUE };
+      { 5, 30, 60, 5 * 60, 30 * 60, Long.MAX_VALUE };
 
   // Recorded data
   private volatile static ProfilerData data;
@@ -30,7 +29,7 @@ public class ProfilerDataCollector
 
   // Reference Q used for recording collection times
   private static final ReferenceQueue<Object> objectCollectedQueue = new ReferenceQueue<Object>();
-  
+
   // Limit amount of output data
   private static long outputLimit = Integer.MAX_VALUE;
   private static long sampleEvery = 1;
@@ -39,13 +38,16 @@ public class ProfilerDataCollector
   private static boolean traceAllocs = false;
   private static boolean detailedTrace = false;
   private static boolean blameAllocs = true;
+  
+  // Max time to wait for a weak reference is enqueued
+  private static final int REMOVE_WAIT_TIME = 200;
 
   public static void profileNewObject(Object ref)
   {
     String className = ref.getClass().getName();
 
     boolean earlyReturn = false;
-    
+
     // Check whether this class is explicitly allowed
     if (classPrefixes != null)
     {
@@ -78,7 +80,7 @@ public class ProfilerDataCollector
     {
       return;
     }
-    
+
     // Check whether this class is explicitly not allowed
     if (excludeClassPrefixes != null)
     {
@@ -106,7 +108,7 @@ public class ProfilerDataCollector
         }
       }
     }
-    
+
     if (earlyReturn)
     {
       return;
@@ -119,31 +121,31 @@ public class ProfilerDataCollector
     }
 
     long size = ObjectSizer.getObjectSize(ref);
-        
+
     if ((largerThan > -1) && (size < largerThan))
     {
       return;
     }
-    
+
     Trace trace = null;
     if (traceAllocs)
     {
       trace = Trace.getTrace(3, className, detailedTrace);
     }
-    
+
     // Lifetime buckets
     ProfilerData lData = data;
     trace = lData.newObject(className, size, trace, traceTarget, traceIgnore);
-    
+
     if (trackCollection)
     {
       LifetimeWeakReference key = new LifetimeWeakReference(ref, 
-                                                            objectCollectedQueue, 
-                                                            className, 
-                                                            System.currentTimeMillis(),
-                                                            size,
-                                                            trace,
-                                                            lData);
+												            objectCollectedQueue, 
+												            className, 
+												            System.currentTimeMillis(),
+												            size,
+												            trace,
+												            lData);
       weakRefSet.put(key, setValue);
     }
   }  
@@ -151,13 +153,13 @@ public class ProfilerDataCollector
   public static void outputData(StringBuilder str)
   {
     data.outputData(str, new Formatter(str), 
-                    outputLimit, 
-                    traceAllocs, 
-                    trackCollection,
-                    blameAllocs);
+			        outputLimit, 
+			        traceAllocs, 
+			        trackCollection,
+			        blameAllocs);
     FileOutput.writeOutput(str.toString());
   }
-  
+
   static void resetData()
   {
     data = new ProfilerData(data.bucketIntervals);
@@ -170,14 +172,14 @@ public class ProfilerDataCollector
    */
   private static class ProfilerDataCollectorThread implements Runnable
   {
-    public Thread th;
-    
+    public StoppableThread th;
+
     /**
      * Start this thread
      */
     public void start()
     {
-      th = new Thread(this);
+      th = new StoppableThread(this);
       th.setDaemon(true);
       th.setName("InMemProfiler-DataCollector");
       th.setPriority(Thread.MAX_PRIORITY);
@@ -185,32 +187,30 @@ public class ProfilerDataCollector
     }
 
     @Override
-    public void run()
-    {
-      try
-      {
-        while (true)
-        {
-          LifetimeWeakReference ref = (LifetimeWeakReference)objectCollectedQueue.remove();
-          
-          String className = ref.className;        
-          long size = ref.size;
-          Trace trace = ref.trace;
-          long instanceCreationTime = ref.creationTime;
-          
-          long instanceCollectionTime = System.currentTimeMillis();
-          long instanceLifeTime = instanceCollectionTime
-              - instanceCreationTime;
+    public void run() {
+    	try {
+    		while (!this.th.isStopped()) {
+    			LifetimeWeakReference ref = (LifetimeWeakReference) objectCollectedQueue.remove(REMOVE_WAIT_TIME);
 
-          ref.data.collectObject(className, size, trace,
-                                 instanceLifeTime / 1000,
-                                 traceTarget, traceIgnore);
-        }
-      }
-      catch (InterruptedException e)
-      {
-        // Discard
-      }
+    			if (ref != null) {
+    				String className = ref.className;
+    				long size = ref.size;
+    				Trace trace = ref.trace;
+    				long instanceCreationTime = ref.creationTime;
+
+    				long instanceCollectionTime = System
+    						.currentTimeMillis();
+    				long instanceLifeTime = instanceCollectionTime
+    						- instanceCreationTime;
+
+    				ref.data.collectObject(className, size, trace,
+    						instanceLifeTime / 1000, traceTarget,
+    						traceIgnore);
+    			}
+    		}
+    	} catch (InterruptedException e) {
+    		// Discard
+    	}
     }
   }
 
@@ -220,7 +220,8 @@ public class ProfilerDataCollector
   private static class ForceGCThread implements Runnable
   {
     private final long gcInterval;
-    public Thread th;
+    public StoppableThread th;
+
     /*
      * Record the InMem threads so we don't record allocations by these threads!
      */
@@ -235,7 +236,7 @@ public class ProfilerDataCollector
      */
     public void start()
     {
-      th = new Thread(this);
+      th = new StoppableThread(this);
       th.setDaemon(true);
       th.setName("InMemProfiler-ForceGC");
       th.start();
@@ -246,7 +247,7 @@ public class ProfilerDataCollector
     {
       try
       {
-        while (true)
+        while (!this.th.isStopped())
         {
           Thread.sleep(gcInterval);
           if (ObjectProfiler.profilingEnabled)
@@ -267,10 +268,10 @@ public class ProfilerDataCollector
    */
   private static class PeriodicOutputThread implements Runnable
   {
-    public Thread th;
+    public StoppableThread th;
     private final long periodicInterval;
     private long numResets;
-    
+
     public PeriodicOutputThread(long periodicInterval, long numResets)
     {
       this.periodicInterval = periodicInterval;
@@ -282,7 +283,7 @@ public class ProfilerDataCollector
      */
     public void start()
     {
-      th = new Thread(this);
+      th = new StoppableThread(this);
       th.setDaemon(true);
       th.setName("InMemProfiler-PeriodicOutput");
       th.start();
@@ -293,19 +294,19 @@ public class ProfilerDataCollector
     {
       try
       {
-        while (true)
+        while (!this.th.isStopped())
         {
           Thread.sleep(periodicInterval);
           if (ObjectProfiler.profilingEnabled)
           {
             StringBuilder str = new StringBuilder("Reason for output: Periodic output\n");
             ProfilerDataCollector.outputData(str);
-                      
+
             if (numResets != 0)
             {
               ProfilerAPI.resetData();
             }
-            
+
             if (numResets > 0)
             {
               numResets--;
@@ -327,45 +328,51 @@ public class ProfilerDataCollector
   private static String[] traceTarget;
   private static boolean exactMatch;
   private static boolean trackCollection;  
+  private static StoppableThread[] workThreads = new StoppableThread[4];
 
   public static void beginProfiling(long[] buckets,
-                                    String[] allowedPrefixes, 
-                                    String[] excludePrefixes, 
-                                    boolean exactmatch, 
-                                    long gcInterval, 
-                                    long periodicInterval,
-                                    long outputlimit, 
-                                    long sampleevery, 
-                                    long largerthan, 
-                                    long numResets, 
-                                    boolean traceallocs, 
-                                    boolean trackcollection, 
-                                    boolean delayprofiling, 
-                                    boolean blame, 
-                                    boolean detailedtrace, 
-                                    String[] traceignore, 
-                                    String[] tracetarget, 
-                                    String path, 
-                                    String allArgs)
+							        String[] allowedPrefixes, 
+							        String[] excludePrefixes, 
+							        boolean exactmatch, 
+							        long gcInterval, 
+							        long periodicInterval,
+							        long outputlimit, 
+							        long sampleevery, 
+							        long largerthan, 
+							        long numResets, 
+							        boolean traceallocs, 
+							        boolean trackcollection, 
+							        boolean delayprofiling, 
+							        boolean blame, 
+							        boolean detailedtrace, 
+							        String[] traceignore, 
+							        String[] tracetarget, 
+							        String path, 
+							        String allArgs)
   {    
     if (path == null)
     {
       path = "./";
     }
-    
+
     try
     {
-      FileOutput.writer = new BufferedWriter(
-                            new OutputStreamWriter(
-                              new FileOutputStream(path + "./inmemprofiler.log", true)));
-      FileOutput.writeOutput("## InMemProfiler Log Initialized");
-      FileOutput.writeOutput("## InMemProfiler : Args : " + allArgs);
+      FileOutput.writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(path + "inmemprofiler.log", false)));
     }
     catch (FileNotFoundException ex)
     {
-      ex.printStackTrace();
+      try {
+        FileOutput.writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("/tmp/inmemprofiler.log", false)));
+      } catch (FileNotFoundException e) {
+        e.printStackTrace();
+      }
     }
-    
+
+    if (FileOutput.writer != null) {
+      FileOutput.writeOutput("## InMemProfiler Log Initialized");
+      FileOutput.writeOutput("## InMemProfiler : Args : " + allArgs);
+    }
+
     if (buckets == null)
     {
       buckets = defaultBuckets;
@@ -384,7 +391,6 @@ public class ProfilerDataCollector
     traceTarget = tracetarget;
     trackCollection = trackcollection;
 
-    Thread[] workThreads = new Thread[4];
     if (gcInterval > -1)
     {
       ForceGCThread gcTh = new ForceGCThread(gcInterval);
@@ -405,7 +411,7 @@ public class ProfilerDataCollector
     }
     {
       // Ensure output happens during shutdown
-      workThreads[3] = new Thread()
+      workThreads[3] = new StoppableThread()
       {
         @Override
         public void run()
@@ -414,12 +420,12 @@ public class ProfilerDataCollector
           ProfilerDataCollector.outputData(str);
         }
       };
-      
+
       Runtime.getRuntime().addShutdownHook(workThreads[3]);
     }        
 
     ObjectProfiler.ignoreThreads = workThreads;
-    
+
     if (delayprofiling)
     {
       FileOutput.writeOutput("## Profiling delayed");      
@@ -427,6 +433,27 @@ public class ProfilerDataCollector
     else
     {
       ObjectProfiler.profilingEnabled = true;
+    }
+  }
+
+  public static void endProfiling()
+  {
+    // Stop profiling
+    ObjectProfiler.profilingEnabled = false;
+
+    // Remove current ShutdownHook
+    Runtime.getRuntime().removeShutdownHook(workThreads[3]);
+
+    for (StoppableThread t : workThreads) {
+      if (t != null) {
+        try {
+          t.stopThread();
+          t.join();
+        } catch (InterruptedException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        }
+      }
     }
   }
 
