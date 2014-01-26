@@ -193,6 +193,8 @@ public class ProfilerDataCollector
         {
           LifetimeWeakReference ref = (LifetimeWeakReference)objectCollectedQueue.remove();
           
+          weakRefSet.remove(ref);
+          
           String className = ref.className;        
           long size = ref.size;
           Trace trace = ref.trace;
